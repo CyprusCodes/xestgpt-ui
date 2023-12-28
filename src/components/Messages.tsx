@@ -1,5 +1,8 @@
 import React from "react";
-import { Card, Timeline, Badge, Dropdown, MenuProps, Button } from "antd";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+
+import { Card, Timeline, Badge, Dropdown, MenuProps, Button, Tabs } from "antd";
 import {
   ToolOutlined,
   RobotOutlined,
@@ -7,8 +10,11 @@ import {
   DeleteOutlined,
   ExclamationCircleOutlined,
   BackwardOutlined,
-  ForkOutlined
+  ForkOutlined,
+  StopOutlined
 } from "@ant-design/icons";
+
+const { TabPane } = Tabs;
 
 const items: MenuProps["items"] = [
   {
@@ -20,6 +26,20 @@ const items: MenuProps["items"] = [
     label: "fork to new window",
     key: "2",
     icon: <ForkOutlined />,
+  },
+  {
+    label: "delete",
+    key: "3",
+    icon: <DeleteOutlined style={{ fontSize: "14px", color: "red" }} />,
+  },
+  {
+    label: "flag as irrelevant",
+    key: "4",
+    icon: (
+      <ExclamationCircleOutlined
+        style={{ fontSize: "14px", color: "orange" }}
+      />
+    ),
   },
 ];
 
@@ -61,10 +81,100 @@ const messages = [
   },
   {
     icon: ToolOutlined,
-    message: `blah blah`,
+    message: ``,
     unuseful: false,
+    type: "tool",
+    tool: {
+      name: "get_dependencies",
+      args: { dependecyDepth: 1, path: "src/components/Modal.tsx" },
+      confirmed: true,
+      output: `Here are the list of dependencies`,
+    },
+  },
+  {
+    icon: ToolOutlined,
+    message: ``,
+    unuseful: false,
+    tool: {
+      name: "get_dependencies",
+      args: { dependecyDepth: 1, path: "src/components/Modal.tsx" },
+      confirmed: false,
+      output: ``,
+    },
+  },
+  {
+    icon: ToolOutlined,
+    message: ``,
+    unuseful: false,
+    tool: {
+      name: "get_dependencies",
+      args: { dependecyDepth: 1, path: "src/components/Modal.tsx" },
+      confirmed: null,
+      output: ``,
+    },
   },
 ];
+
+const renderMessageCard = (message: any) => {
+  if (message.unuseful) {
+    return (
+      <Card>
+        <p style={{ opacity: 0.5 }}>{message.message}</p>
+      </Card>
+    );
+  }
+
+  if (message.tool) {
+    const toolDetails = message.tool;
+    const isRejected = toolDetails.confirmed === false;
+    const Ribbon = isRejected ? Badge.Ribbon : React.Fragment;
+
+    return (
+      <Ribbon
+        text={
+          <>
+            <StopOutlined
+              style={{ fontSize: "14px", color: "white" }}
+            />{" "}
+            user rejected
+          </>
+        }
+        color="red"
+      >
+        <Card
+          bodyStyle={{ paddingTop: "0" }}
+          title={
+            <>
+              use tool:{" "}
+              <span style={{ color: "green", fontWeight: "bold" }}>
+                {toolDetails.name}
+              </span>
+            </>
+          }
+        >
+          <Tabs defaultActiveKey="1">
+            <TabPane tab="Call Arguments" key="1">
+              <SyntaxHighlighter language="javascript" style={oneDark}>
+                {JSON.stringify(toolDetails.args, null, 2)}
+              </SyntaxHighlighter>
+            </TabPane>
+            {toolDetails.confirmed === true && (
+              <TabPane tab="Output" key="2">
+                <p>{toolDetails.output}</p>
+              </TabPane>
+            )}
+          </Tabs>
+        </Card>
+      </Ribbon>
+    );
+  }
+
+  return (
+    <Card>
+      <p>{message.message}</p>
+    </Card>
+  );
+};
 
 const Messages = () => {
   return (
@@ -75,11 +185,14 @@ const Messages = () => {
             dot={
               <>
                 {" "}
-                <Dropdown
-                  menu={menuProps}
-                  placement="bottom"
-                  
-                ><Button icon={<m.icon style={{ fontSize: "20px", color: "green" }} />} style={{border: "none"}}></Button></Dropdown>
+                <Dropdown menu={menuProps} placement="bottom">
+                  <Button
+                    icon={
+                      <m.icon style={{ fontSize: "24px", color: "green" }} />
+                    }
+                    style={{ border: "none" }}
+                  ></Button>
+                </Dropdown>
               </>
             }
             color="green"
@@ -97,32 +210,10 @@ const Messages = () => {
                 }
                 color="orange"
               >
-                <Card
-                  actions={[
-                    <DeleteOutlined
-                      style={{ fontSize: "14px", color: "red" }}
-                    />,
-
-                    <ExclamationCircleOutlined
-                      style={{ fontSize: "14px", color: "orange" }}
-                    />,
-                  ]}
-                >
-                  <p style={{ opacity: "0.5" }}>{m.message}</p>
-                </Card>
+                {renderMessageCard(m)}
               </Badge.Ribbon>
             ) : (
-              <Card
-                actions={[
-                  <DeleteOutlined style={{ fontSize: "14px", color: "red" }} />,
-
-                  <ExclamationCircleOutlined
-                    style={{ fontSize: "14px", color: "orange" }}
-                  />,
-                ]}
-              >
-                <p>{m.message}</p>
-              </Card>
+              renderMessageCard(m)
             )}
           </Timeline.Item>
         );
