@@ -2,7 +2,16 @@ import React from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
-import { Card, Timeline, Badge, Dropdown, MenuProps, Button, Tabs } from "antd";
+import {
+  Card,
+  Timeline,
+  Badge,
+  Dropdown,
+  MenuProps,
+  Button,
+  Tabs,
+  Space,
+} from "antd";
 import {
   ToolOutlined,
   RobotOutlined,
@@ -11,7 +20,10 @@ import {
   ExclamationCircleOutlined,
   BackwardOutlined,
   ForkOutlined,
-  StopOutlined
+  StopOutlined,
+  CheckOutlined,
+  CloseOutlined,
+  ClockCircleOutlined
 } from "@ant-design/icons";
 
 const { TabPane } = Tabs;
@@ -127,20 +139,38 @@ const renderMessageCard = (message: any) => {
   if (message.tool) {
     const toolDetails = message.tool;
     const isRejected = toolDetails.confirmed === false;
-    const Ribbon = isRejected ? Badge.Ribbon : React.Fragment;
+    const isWaitingResponse =
+      toolDetails.confirmed !== false && toolDetails.confirmed !== true;
+    let Ribbon: any = React.Fragment;
+    let ribbonProps = {}
+
+    if (isRejected) {
+        Ribbon = Badge.Ribbon;
+        ribbonProps = {
+            text: (
+              <>
+                <StopOutlined style={{ fontSize: "14px", color: "white" }} /> user
+                rejected
+              </>
+            ),
+            color: "red",
+          };
+    }
+
+    if (isWaitingResponse) {
+        Ribbon = Badge.Ribbon;
+        ribbonProps = {
+            text: (
+              <>
+                <ClockCircleOutlined style={{ fontSize: "14px", color: "white" }} /> waiting user confirmation
+              </>
+            ),
+            color: "orange",
+          };
+    }
 
     return (
-      <Ribbon
-        text={
-          <>
-            <StopOutlined
-              style={{ fontSize: "14px", color: "white" }}
-            />{" "}
-            user rejected
-          </>
-        }
-        color="red"
-      >
+      <Ribbon {...ribbonProps}>
         <Card
           bodyStyle={{ paddingTop: "0" }}
           title={
@@ -157,6 +187,20 @@ const renderMessageCard = (message: any) => {
               <SyntaxHighlighter language="javascript" style={oneDark}>
                 {JSON.stringify(toolDetails.args, null, 2)}
               </SyntaxHighlighter>
+              {isWaitingResponse && (
+                <Space>
+                  <Button
+                    type="primary"
+                    icon={<CheckOutlined />}
+                    onClick={() => {}}
+                  >
+                    Accept and run tool
+                  </Button>
+                  <Button danger icon={<CloseOutlined />} onClick={() => {}}>
+                    Reject tool
+                  </Button>
+                </Space>
+              )}
             </TabPane>
             {toolDetails.confirmed === true && (
               <TabPane tab="Output" key="2">
