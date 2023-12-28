@@ -1,0 +1,30 @@
+.custom-container {
+    display: flex;
+    align-items: stretch;
+    /* Make all items (buttons and TextArea) stretch to fill the container's height */
+}
+
+.custom-space {
+    display: flex;
+    align-items: stretch;
+    /* Make buttons and TextArea stretch vertically */
+    width: 100%;
+}
+
+.custom-button {
+    flex: 1;
+    height: 100px;
+}
+
+.custom-textarea {
+    flex: 1;
+    height: 100px;
+    width: calc(100vw - 435px); /* Make TextArea fill the available horizontal space */
+    /* Make buttons and TextArea take up equal space and expand vertically */
+}
+
+.custom-textarea {
+    flex: 2;
+    /* Make TextArea take up more space (adjust as needed) */
+    resize: vertical;
+}
