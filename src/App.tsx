@@ -1,15 +1,10 @@
-import React, {useState} from "react";
+import React, { useState } from "react";
 import {
-  AppstoreOutlined,
   BarChartOutlined,
   CloudOutlined,
-  ShopOutlined,
-  TeamOutlined,
   UploadOutlined,
   UserOutlined,
   VideoCameraOutlined,
-  LaptopOutlined,
-  NotificationOutlined,
 } from "@ant-design/icons";
 import type { MenuProps, TabsProps } from "antd";
 import { Layout, Menu, theme, Tabs } from "antd";
@@ -18,7 +13,7 @@ import ToolSelector from "./components/ToolSelector";
 import SubmitButton from "./components/SubmitButton";
 import Messages from "./components/Messages";
 
-const { Header, Content, Footer, Sider } = Layout;
+const { Content, Footer, Sider } = Layout;
 
 const menuItems: MenuProps["items"] = [
   UserOutlined,
@@ -49,10 +44,43 @@ const items: TabsProps["items"] = [
   },
 ];
 
+async function postSessionMessage(messages: any) {
+  console.log("here???");
+  const url = "http://localhost:1313/session";
+  const requestBody = {
+    messages,
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Private-Network": "true"
+        // Add any additional headers if needed
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    // Check if the request was successful (status code 2xx)
+    if (response.ok) {
+      const data = await response.json(); // Parse the response body as JSON
+      return data;
+    } else {
+      throw new Error(`Error: ${response.status} - ${response.statusText}`);
+    }
+  } catch (error) {
+    // Handle errors during the fetch
+    console.error("Fetch Error:", error);
+  }
+}
+
 const App: React.FC = () => {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+
+  const [messages, setMessages] = useState([]);
 
   return (
     <Layout hasSider>
@@ -82,11 +110,13 @@ const App: React.FC = () => {
               padding: "24px 0",
               background: colorBgContainer,
               borderRadius: borderRadiusLG,
-              height: 'calc(100vh - 235px)'
+              height: "calc(100vh - 235px)",
             }}
           >
-            <Content style={{ padding: "0 24px", minHeight: 280, overflow: "scroll" }}>
-              <Messages/>
+            <Content
+              style={{ padding: "0 24px", minHeight: 280, overflow: "scroll" }}
+            >
+              <Messages messages={messages} />
             </Content>
             <Sider
               width={300}
@@ -105,7 +135,11 @@ const App: React.FC = () => {
           </Layout>
         </Content>
         <Footer style={{ textAlign: "center" }}>
-          <SubmitButton />
+          <SubmitButton
+            setMessages={setMessages}
+            messages={messages}
+            postSessionMessage={postSessionMessage}
+          />
         </Footer>
       </Layout>
     </Layout>
