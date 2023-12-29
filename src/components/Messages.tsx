@@ -1,6 +1,10 @@
 import React from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+import "highlight.js/styles/vs2015.css";
 
 import {
   Card,
@@ -150,7 +154,12 @@ const messages = [
 ];
 */
 
-const renderMessageCard = (message: any) => {
+const renderMessageCard = (
+  message: any,
+  messages: any,
+  setMessages: any,
+  postSessionMessage: any
+) => {
   if (message.unuseful) {
     return (
       <Card>
@@ -216,11 +225,35 @@ const renderMessageCard = (message: any) => {
                   <Button
                     type="primary"
                     icon={<CheckOutlined />}
-                    onClick={() => {}}
+                    onClick={() => {
+                      const lastMessage = messages[messages.length - 1];
+                      lastMessage.tool.confirmed = true;
+                      const newMessages = [...messages];
+                      setMessages(newMessages);
+                      postSessionMessage(newMessages).then((data: any) => {
+                        if (data.messages) {
+                          setMessages(data.messages);
+                        }
+                      });
+                    }}
                   >
                     Accept and run tool
                   </Button>
-                  <Button danger icon={<CloseOutlined />} onClick={() => {}}>
+                  <Button
+                    danger
+                    icon={<CloseOutlined />}
+                    onClick={() => {
+                      const lastMessage = messages[messages.length - 1];
+                      lastMessage.tool.confirmed = false;
+                      const newMessages = [...messages];
+                      setMessages(newMessages);
+                      postSessionMessage(newMessages).then((data: any) => {
+                        if (data.messages) {
+                          setMessages(data.messages);
+                        }
+                      });
+                    }}
+                  >
                     Reject tool
                   </Button>
                 </Space>
@@ -237,9 +270,16 @@ const renderMessageCard = (message: any) => {
     );
   }
 
+  // todo
+  // https://blog.designly.biz/react-markdown-how-to-create-a-copy-code-button#google_vignette
   return (
     <Card>
-      <p>{message.message}</p>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeHighlight]}
+      >
+        {message.message}
+      </ReactMarkdown>
     </Card>
   );
 };
@@ -256,7 +296,7 @@ const getMessageIcon = (role: string) => {
   return <UserOutlined style={{ fontSize: "24px", color: "green" }} />;
 };
 
-const Messages = ({ messages }: { messages: any }) => {
+const Messages = ({ messages, setMessages, postSessionMessage }: any) => {
   if (!messages.length) {
     return (
       <Empty
@@ -306,10 +346,15 @@ const Messages = ({ messages }: { messages: any }) => {
                 }
                 color="orange"
               >
-                {renderMessageCard(m)}
+                {renderMessageCard(
+                  m,
+                  messages,
+                  setMessages,
+                  postSessionMessage
+                )}
               </Badge.Ribbon>
             ) : (
-              renderMessageCard(m)
+              renderMessageCard(m, messages, setMessages, postSessionMessage)
             )}
           </Timeline.Item>
         );

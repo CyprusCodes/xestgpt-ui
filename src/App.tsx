@@ -116,7 +116,7 @@ const App: React.FC = () => {
             <Content
               style={{ padding: "0 24px", minHeight: 280, overflow: "scroll" }}
             >
-              <Messages messages={messages} />
+              <Messages messages={messages} setMessages={setMessages} postSessionMessage={postSessionMessage} />
             </Content>
             <Sider
               width={300}
