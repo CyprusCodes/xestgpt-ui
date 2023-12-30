@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   BarChartOutlined,
   CloudOutlined,
@@ -45,7 +45,6 @@ const items: TabsProps["items"] = [
 ];
 
 async function postSessionMessage(messages: any) {
-  console.log("here???");
   const url = "http://localhost:1313/session";
   const requestBody = {
     messages,
@@ -56,7 +55,7 @@ async function postSessionMessage(messages: any) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Private-Network": "true"
+        "Access-Control-Allow-Private-Network": "true",
         // Add any additional headers if needed
       },
       body: JSON.stringify(requestBody),
@@ -75,10 +74,47 @@ async function postSessionMessage(messages: any) {
   }
 }
 
+async function getTools() {
+  const url = "http://localhost:1313/tools";
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Private-Network": "true",
+        // Add any additional headers if needed
+      },
+    });
+
+    // Check if the request was successful (status code 2xx)
+    if (response.ok) {
+      const data = await response.json(); // Parse the response body as JSON
+      return data;
+    } else {
+      throw new Error(`Error: ${response.status} - ${response.statusText}`);
+    }
+  } catch (error) {
+    // Handle errors during the fetch
+    console.error("Fetch Error:", error);
+    return [];
+  }
+}
+
 const App: React.FC = () => {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+  const [tools, setTools] = useState([]);
+
+  const getToolsFn = async () => {
+    const toolsResponse = await getTools();
+    setTools(toolsResponse.tools);
+  };
+
+  useEffect(() => {
+    getToolsFn();
+  }, []);
 
   const [messages, setMessages] = useState([]);
 
@@ -103,34 +139,46 @@ const App: React.FC = () => {
         />
       </Sider>
       <Layout style={{ marginLeft: 200 }}>
-        <TopBar></TopBar>
+        {/*<TopBar></TopBar>*/}
         <Content style={{ padding: "10px 48px" }}>
           <Layout
             style={{
               padding: "24px 0",
               background: colorBgContainer,
               borderRadius: borderRadiusLG,
-              height: "calc(100vh - 235px)",
+              height: "calc(100vh - 175px)",
             }}
           >
             <Content
               style={{ padding: "0 24px", minHeight: 280, overflow: "scroll" }}
             >
-              <Messages messages={messages} setMessages={setMessages} postSessionMessage={postSessionMessage} />
+              <Messages
+                messages={messages}
+                setMessages={setMessages}
+                postSessionMessage={postSessionMessage}
+              />
             </Content>
             <Sider
-              width={300}
+              width={370}
               style={{
                 background: colorBgContainer,
                 borderLeft: "1px solid #f0f0f0",
               }}
             >
-              <Tabs
-                centered
-                defaultActiveKey="1"
-                items={items}
-                onChange={onChange}
-              />
+              {tools.length && (
+                <Tabs
+                  centered
+                  defaultActiveKey="1"
+                  items={[
+                    {
+                      key: "1",
+                      label: "Tools",
+                      children: <ToolSelector tools={tools} />,
+                    },
+                  ]}
+                  onChange={onChange}
+                />
+              )}
             </Sider>
           </Layout>
         </Content>
