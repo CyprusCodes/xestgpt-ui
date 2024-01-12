@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { Input, Tree } from "antd";
+import { Input, Tree, Tooltip } from "antd";
+import { InfoCircleOutlined } from "@ant-design/icons";
+
 import type { DataNode } from "antd/es/tree";
 import "./tool-selector.css";
 import { ToolData } from "../../types";
@@ -14,20 +16,26 @@ interface ToolTreeData extends DataNode {
 const computeParentKeys = (key: string): string[] => {
   const ids = key.split("-");
 
-  return ids
-    .map((element, index) => {
-      if (index > 0) {
-        const ancestors = ids.slice(0, index);
-        return `${ancestors.join("-")}-${element}`;
-      }
+  return (
+    ids
+      .map((element, index) => {
+        if (index > 0) {
+          const ancestors = ids.slice(0, index);
+          return `${ancestors.join("-")}-${element}`;
+        }
 
-      return `${element}`;
-    })
-    // dont return the key itself
-    .filter((k) => k !== key);
+        return `${element}`;
+      })
+      // dont return the key itself
+      .filter((k) => k !== key)
+  );
 };
 
-const findPathBetweenKeys = (data: ToolTreeData[], startKey: React.Key, endKey: React.Key): React.Key[] => {
+const findPathBetweenKeys = (
+  data: ToolTreeData[],
+  startKey: React.Key,
+  endKey: React.Key
+): React.Key[] => {
   const result: React.Key[] = [];
 
   const findPath = (currentData: ToolTreeData[], path: React.Key[] = []) => {
@@ -50,13 +58,19 @@ const findPathBetweenKeys = (data: ToolTreeData[], startKey: React.Key, endKey: 
   const endIndex = result.indexOf(String(endKey));
 
   if (startIndex !== -1 && endIndex !== -1) {
-    return result.slice(Math.min(startIndex, endIndex), Math.max(startIndex, endIndex) + 1);
+    return result.slice(
+      Math.min(startIndex, endIndex),
+      Math.max(startIndex, endIndex) + 1
+    );
   } else {
     return [];
   }
 };
 
-const findAllChildrenKeys = (data: ToolTreeData[], targetKey: React.Key): string[] => {
+const findAllChildrenKeys = (
+  data: ToolTreeData[],
+  targetKey: React.Key
+): string[] => {
   const result: string[] = [];
 
   const traverse = (node: ToolTreeData | undefined) => {
@@ -267,13 +281,16 @@ const ToolSelector: React.FC = () => {
     };
 
     traverseAndExpand(defaultData);
-    setExpandedKeys(newExpandedKeys);
+    const newExpandedKeysWithParents = newExpandedKeys.map(k => computeParentKeys(String(k)));
+
+    // todo: we might need unique keys here, but it's fine for now
+    setExpandedKeys([...newExpandedKeysWithParents.flat(), ...newExpandedKeys]);
     setSearchValue(value);
     setAutoExpandParent(true);
   };
 
   const treeData = useMemo(() => {
-    const loop = (data: DataNode[]): DataNode[] =>
+    const loop = (data: ToolTreeData[]): ToolTreeData[] =>
       data.map((item) => {
         const strTitle = item.title as string;
         const index = strTitle.toLowerCase().indexOf(searchValue.toLowerCase());
@@ -283,6 +300,32 @@ const ToolSelector: React.FC = () => {
           index + searchValue.length
         );
         const afterStr = strTitle.slice(index + searchValue.length);
+        
+        
+        let showInfoIcon = <></>;
+        /*
+        if (item.metadata) {
+          showInfoIcon = (
+            <Tooltip
+              title="Your info message here"
+              getPopupContainer={(triggerNode) => triggerNode.parentElement}
+            >
+              <span
+                onClick={
+                  (e: MouseEvent) => {
+                    e.preventDefault();
+                  }
+                }
+              >
+                <InfoCircleOutlined
+                  style={{ marginLeft: 8, color: "#1890ff" }}
+                />
+              </span>
+            </Tooltip>
+          );
+        }
+        */
+
         const title =
           index > -1 ? (
             <span>
@@ -291,9 +334,13 @@ const ToolSelector: React.FC = () => {
                 <span className="site-tree-search-value">{matchedStr}</span>
               </strong>
               {afterStr}
+              {showInfoIcon}
             </span>
           ) : (
-            <span>{strTitle}</span>
+            <span>
+              {strTitle}
+              {showInfoIcon}
+            </span>
           );
         if (item.children) {
           return { title, key: item.key, children: loop(item.children) };
@@ -345,30 +392,45 @@ const ToolSelector: React.FC = () => {
 
       const areAnyOfTheParentCategoriesChecked = allCheckedParents.length > 0;
       if (areAnyOfTheParentCategoriesChecked) {
-        const [topMostParentKey] = allCheckedParents.sort((a: React.Key, b: React.Key) => {
-          const depthA = String(a).split("-").length;
-          const depthB = String(b).split("-").length;
-        
-          return depthA - depthB;
-        });
+        const [topMostParentKey] = allCheckedParents.sort(
+          (a: React.Key, b: React.Key) => {
+            const depthA = String(a).split("-").length;
+            const depthB = String(b).split("-").length;
+
+            return depthA - depthB;
+          }
+        );
 
         const allChildren = findAllChildrenKeys(defaultData, topMostParentKey);
-        const prunedCheckedKeys = checkedKeysArr.filter(key => !allChildren.includes(String(key)));
+        const prunedCheckedKeys = checkedKeysArr.filter(
+          (key) => !allChildren.includes(String(key))
+        );
 
-        const pathsBetween = findPathBetweenKeys(defaultData, topMostParentKey, node.key);
-        const allChildrenExceptPathsInBetween = allChildren.filter(cKey => !pathsBetween.includes(cKey))
-        
-        return setCheckedKeys([...prunedCheckedKeys, ...allChildrenExceptPathsInBetween])
+        const pathsBetween = findPathBetweenKeys(
+          defaultData,
+          topMostParentKey,
+          node.key
+        );
+        const allChildrenExceptPathsInBetween = allChildren.filter(
+          (cKey) => !pathsBetween.includes(cKey)
+        );
+
+        return setCheckedKeys([
+          ...prunedCheckedKeys,
+          ...allChildrenExceptPathsInBetween,
+        ]);
       }
 
       const isToolChecked = checkedKeysArr.includes(node.key);
       if (isToolChecked) {
-        return setCheckedKeys([...checkedKeysArr.filter(k => k !== node.key)]);
+        return setCheckedKeys([
+          ...checkedKeysArr.filter((k) => k !== node.key),
+        ]);
       }
 
       // tool is not checked, neither any of its parents
       // add the tool to checked list
-      return setCheckedKeys([...checkedKeysArr, node.key])
+      return setCheckedKeys([...checkedKeysArr, node.key]);
     }
   };
 
