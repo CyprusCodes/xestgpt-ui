@@ -118,7 +118,9 @@ const getParentKey = (key: React.Key, tree: DataNode[]): React.Key => {
 const App: React.FC = () => {
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const [checkedKeys, setCheckedKeys] = useState<React.Key[] | { checked: React.Key[]; halfChecked: React.Key[] }>(["0-0-0"]);
+  const [checkedKeys, setCheckedKeys] = useState<
+    React.Key[] | { checked: React.Key[]; halfChecked: React.Key[] }
+  >(["0-0-0"]);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [autoExpandParent, setAutoExpandParent] = useState(true);
 
@@ -170,7 +172,9 @@ const App: React.FC = () => {
           index > -1 ? (
             <span>
               {beforeStr}
-              <span className="site-tree-search-value">{matchedStr}</span>
+              <strong>
+                <span className="site-tree-search-value">{matchedStr}</span>
+              </strong>
               {afterStr}
             </span>
           ) : (
@@ -189,14 +193,40 @@ const App: React.FC = () => {
     return loop(defaultData);
   }, [searchValue]);
 
-  const onCheck = (checkedKeysValue: React.Key[] | { checked: React.Key[]; halfChecked: React.Key[] },): void => {
+  const onCheck = (
+    checkedKeysValue:
+      | React.Key[]
+      | { checked: React.Key[]; halfChecked: React.Key[] }
+  ): void => {
     console.log("onCheck", checkedKeysValue);
     setCheckedKeys(checkedKeysValue);
   };
 
   const onSelect = (selectedKeysValue: React.Key[], info: any) => {
-    console.log("onSelect", info);
+    // if the selected node is a category, then expand or collapse
+    // it the selected node is a tool, then select or deselect
+    const { node } = info;
     setSelectedKeys(selectedKeysValue);
+
+    // Check if the selected node is a category (assuming category nodes have children)
+    if (node.children && node.children.length > 0) {
+      const isThisCategoryExpanded = expandedKeys.includes(node.key);
+
+      // If it's a category, expand or collapse it
+      const newExpandedKeys = isThisCategoryExpanded
+        ? expandedKeys.filter((key) => key !== node.key)
+        : [...expandedKeys, node.key];
+
+      setExpandedKeys(newExpandedKeys);
+    } else {
+      // If it's a tool, select or deselect it
+      const checkedKeysArr = checkedKeys as React.Key[];
+
+      const newCheckedKeys = checkedKeysArr.includes(node.key)
+        ? checkedKeysArr.filter((key) => key !== node.key)
+        : [...checkedKeysArr, node.key];
+      setCheckedKeys(newCheckedKeys);
+    }
   };
 
   return (
