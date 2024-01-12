@@ -1,6 +1,7 @@
 interface ToolArgument {
   type: string;
   description: string;
+  default?: any;
 }
 
 interface ToolArguments {

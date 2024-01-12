@@ -5,6 +5,7 @@ import { InfoCircleOutlined } from "@ant-design/icons";
 import type { DataNode } from "antd/es/tree";
 import "./tool-selector.css";
 import { ToolData } from "../../types";
+import ToolInformationModal from "./ToolInformationModal";
 
 const { Search } = Input;
 
@@ -109,19 +110,28 @@ const defaultData: ToolTreeData[] = [
     title: "CRM",
     key: "0-0",
     metadata: {
-      name: "read_file_at_path",
-      description: "Read file content at a given path",
-      arguments: {
-        type: "object",
-        default: {},
-        properties: {
-          path: {
-            type: "string",
-            description: "the directory path to show contents",
-          },
+      "name": "find_files_by_keyword",
+      "description": "Search files by keyword in their name within the codebase",
+      "arguments": {
+        "type": "object",
+        "default": {
+          "matchCase": false
         },
-        required: ["path"],
-      },
+        "properties": {
+          "keyword": {
+            "type": "string",
+            "description": "The keyword to search for in the codebase."
+          },
+          "matchCase": {
+            "type": "boolean",
+            "default": false,
+            "description": "Specify whether the search should be case-sensitive or case-insensitive."
+          }
+        },
+        "required": [
+          "keyword"
+        ]
+      }
     },
     children: [
       {
@@ -252,6 +262,7 @@ const ToolSelector: React.FC = () => {
   >(["0-0-0"]);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [autoExpandParent, setAutoExpandParent] = useState(true);
+  const [selectedToolData, setSelectedToolData] = useState<ToolData>();
 
   const onExpand = (newExpandedKeys: React.Key[]) => {
     setExpandedKeys(newExpandedKeys);
@@ -281,7 +292,9 @@ const ToolSelector: React.FC = () => {
     };
 
     traverseAndExpand(defaultData);
-    const newExpandedKeysWithParents = newExpandedKeys.map(k => computeParentKeys(String(k)));
+    const newExpandedKeysWithParents = newExpandedKeys.map((k) =>
+      computeParentKeys(String(k))
+    );
 
     // todo: we might need unique keys here, but it's fine for now
     setExpandedKeys([...newExpandedKeysWithParents.flat(), ...newExpandedKeys]);
@@ -300,22 +313,16 @@ const ToolSelector: React.FC = () => {
           index + searchValue.length
         );
         const afterStr = strTitle.slice(index + searchValue.length);
-        
-        
+
         let showInfoIcon = <></>;
-        /*
         if (item.metadata) {
           showInfoIcon = (
-            <Tooltip
-              title="Your info message here"
-              getPopupContainer={(triggerNode) => triggerNode.parentElement}
-            >
+            <Tooltip title="show tool details">
               <span
-                onClick={
-                  (e: MouseEvent) => {
-                    e.preventDefault();
-                  }
-                }
+                onClick={(el: any) => {
+                  el.stopPropagation();
+                  setSelectedToolData(item.metadata);
+                }}
               >
                 <InfoCircleOutlined
                   style={{ marginLeft: 8, color: "#1890ff" }}
@@ -324,7 +331,6 @@ const ToolSelector: React.FC = () => {
             </Tooltip>
           );
         }
-        */
 
         const title =
           index > -1 ? (
@@ -452,6 +458,13 @@ const ToolSelector: React.FC = () => {
         autoExpandParent={autoExpandParent}
         treeData={treeData}
       />
+      <ToolInformationModal
+        toolData={selectedToolData}
+        visible={Boolean(selectedToolData)}
+        onClose={() => {
+          setSelectedToolData(undefined);
+        }}
+      ></ToolInformationModal>
     </div>
   );
 };

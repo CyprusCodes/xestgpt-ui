@@ -1,44 +1,81 @@
-import React from 'react';
-import { Modal, Button, Descriptions } from 'antd';
-import { ToolData } from '../../types';
+import React from "react";
+import { Modal, Button, Table, Typography, Card } from "antd";
+import { ToolData } from "../../types";
 
 interface ToolInformationModalProps {
-  toolData: ToolData;
+  toolData?: ToolData;
   visible: boolean;
   onClose: () => void;
 }
 
-const ToolInformationModal: React.FC<ToolInformationModalProps> = ({ toolData, visible, onClose }) => {
+
+const columns = [
+  {
+    title: 'Name',
+    dataIndex: 'name',
+    key: 'name',
+  },
+  {
+    title: 'Type',
+    dataIndex: 'type',
+    key: 'type',
+  },
+  {
+    title: 'Required',
+    dataIndex: 'required',
+    key: 'required',
+    render: (required: boolean) => (required ? 'Yes' : 'No'),
+  },
+  {
+    title: 'Default',
+    dataIndex: 'default',
+    key: 'default',
+  },
+  {
+    title: 'Description',
+    dataIndex: 'description',
+    key: 'description',
+  },
+];
+
+const ToolInformationModal: React.FC<ToolInformationModalProps> = ({
+  toolData,
+  visible,
+  onClose,
+}) => {
+  if (!toolData) {
+    return null;
+  }
+
   const { name, description, arguments: toolArguments } = toolData;
+
+  const dataSource = Object.entries(toolArguments.properties).map(([argName, argDetails]) => ({
+    key: argName,
+    name: argName,
+    type: argDetails.type,
+    required: toolArguments.required && toolArguments.required.includes(argName),
+    default: JSON.stringify(toolArguments.default[argName]) || "",
+    description: argDetails.description,
+  }));
+
 
   return (
     <Modal
       title={name}
       open={visible}
       onCancel={onClose}
+      width="800px"
       footer={[
         <Button key="close" onClick={onClose}>
           Close
         </Button>,
       ]}
     >
-      <Descriptions title="Tool Information" bordered>
-        <Descriptions.Item label="Description">{description}</Descriptions.Item>
-        <Descriptions.Item label="Arguments" span={2}>
-          {Object.keys(toolArguments.properties || {}).map((argName) => (
-            <div key={argName}>
-              <strong>{argName}:</strong> {toolArguments.properties[argName].type}
-              <br />
-              <small>{toolArguments.properties[argName].description}</small>
-              {toolArguments.required && toolArguments.required.includes(argName) ? (
-                <span style={{ marginLeft: '8px', color: 'red' }}>(Required)</span>
-              ) : (
-                <span style={{ marginLeft: '8px', color: 'green' }}>(Optional)</span>
-              )}
-            </div>
-          ))}
-        </Descriptions.Item>
-      </Descriptions>
+      <Card>
+        <Typography.Paragraph>{description}</Typography.Paragraph>
+        <Typography.Title level={5}>Arguments List</Typography.Title>
+        <Table dataSource={dataSource} columns={columns} pagination={false} />
+      </Card>
     </Modal>
   );
 };
