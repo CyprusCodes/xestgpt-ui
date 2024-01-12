@@ -2,13 +2,113 @@ import React, { useMemo, useState } from "react";
 import { Input, Tree } from "antd";
 import type { DataNode } from "antd/es/tree";
 import "./tool-selector.css";
+import { ToolData } from "../../types";
 
 const { Search } = Input;
 
-const defaultData: DataNode[] = [
+interface ToolTreeData extends DataNode {
+  metadata?: ToolData;
+  children?: ToolTreeData[];
+}
+
+const computeParentKeys = (key: string): string[] => {
+  const ids = key.split("-");
+
+  return ids
+    .map((element, index) => {
+      if (index > 0) {
+        const ancestors = ids.slice(0, index);
+        return `${ancestors.join("-")}-${element}`;
+      }
+
+      return `${element}`;
+    })
+    // dont return the key itself
+    .filter((k) => k !== key);
+};
+
+const findPathBetweenKeys = (data: ToolTreeData[], startKey: React.Key, endKey: React.Key): React.Key[] => {
+  const result: React.Key[] = [];
+
+  const findPath = (currentData: ToolTreeData[], path: React.Key[] = []) => {
+    for (const node of currentData) {
+      const newPath: React.Key[] = [...path, node.key];
+
+      if (node.key === startKey || node.key === endKey) {
+        result.push(...newPath);
+      }
+
+      if (node.children) {
+        findPath(node.children, newPath);
+      }
+    }
+  };
+
+  findPath(data);
+
+  const startIndex = result.indexOf(String(startKey));
+  const endIndex = result.indexOf(String(endKey));
+
+  if (startIndex !== -1 && endIndex !== -1) {
+    return result.slice(Math.min(startIndex, endIndex), Math.max(startIndex, endIndex) + 1);
+  } else {
+    return [];
+  }
+};
+
+const findAllChildrenKeys = (data: ToolTreeData[], targetKey: React.Key): string[] => {
+  const result: string[] = [];
+
+  const traverse = (node: ToolTreeData | undefined) => {
+    if (!node) {
+      return;
+    }
+
+    result.push(node.key as string);
+
+    if (node.children) {
+      for (const child of node.children) {
+        traverse(child);
+      }
+    }
+  };
+
+  const findTargetNode = (currentData: ToolTreeData[]) => {
+    for (const node of currentData) {
+      if (node.key === targetKey) {
+        traverse(node);
+      }
+
+      if (node.children) {
+        findTargetNode(node.children);
+      }
+    }
+  };
+
+  findTargetNode(data);
+
+  return result;
+};
+
+const defaultData: ToolTreeData[] = [
   {
     title: "CRM",
     key: "0-0",
+    metadata: {
+      name: "read_file_at_path",
+      description: "Read file content at a given path",
+      arguments: {
+        type: "object",
+        default: {},
+        properties: {
+          path: {
+            type: "string",
+            description: "the directory path to show contents",
+          },
+        },
+        required: ["path"],
+      },
+    },
     children: [
       {
         title: "Mailchimp",
@@ -71,6 +171,21 @@ const defaultData: DataNode[] = [
           {
             title: "get_invoices",
             key: "0-1-0-2",
+            metadata: {
+              name: "read_file_at_path",
+              description: "Read file content at a given path",
+              arguments: {
+                type: "object",
+                default: {},
+                properties: {
+                  path: {
+                    type: "string",
+                    description: "the directory path to show contents",
+                  },
+                },
+                required: ["path"],
+              },
+            },
           },
         ],
       },
@@ -115,7 +230,7 @@ const getParentKey = (key: React.Key, tree: DataNode[]): React.Key => {
   return parentKey!;
 };
 
-const App: React.FC = () => {
+const ToolSelector: React.FC = () => {
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [checkedKeys, setCheckedKeys] = useState<
@@ -201,9 +316,10 @@ const App: React.FC = () => {
     setCheckedKeys(checkedKeysValue);
   };
 
+  // be careful when changing this method, as it's doing lots of clever logic
+  // if the selected node is a category, then expand or collapse
+  // it the selected node is a tool, then select or deselect
   const onSelect = (selectedKeysValue: React.Key[], info: any) => {
-    // if the selected node is a category, then expand or collapse
-    // it the selected node is a tool, then select or deselect
     const { node } = info;
     setSelectedKeys(selectedKeysValue);
 
@@ -221,10 +337,38 @@ const App: React.FC = () => {
       // If it's a tool, select or deselect it
       const checkedKeysArr = checkedKeys as React.Key[];
 
-      const newCheckedKeys = checkedKeysArr.includes(node.key)
-        ? checkedKeysArr.filter((key) => key !== node.key)
-        : [...checkedKeysArr, node.key];
-      setCheckedKeys(newCheckedKeys);
+      const parentKeys = computeParentKeys(node.key);
+      // filter all checked parents of the tool key
+      const allCheckedParents = checkedKeysArr.filter((key) => {
+        return parentKeys.some((pKey) => pKey === key);
+      });
+
+      const areAnyOfTheParentCategoriesChecked = allCheckedParents.length > 0;
+      if (areAnyOfTheParentCategoriesChecked) {
+        const [topMostParentKey] = allCheckedParents.sort((a: React.Key, b: React.Key) => {
+          const depthA = String(a).split("-").length;
+          const depthB = String(b).split("-").length;
+        
+          return depthA - depthB;
+        });
+
+        const allChildren = findAllChildrenKeys(defaultData, topMostParentKey);
+        const prunedCheckedKeys = checkedKeysArr.filter(key => !allChildren.includes(String(key)));
+
+        const pathsBetween = findPathBetweenKeys(defaultData, topMostParentKey, node.key);
+        const allChildrenExceptPathsInBetween = allChildren.filter(cKey => !pathsBetween.includes(cKey))
+        
+        return setCheckedKeys([...prunedCheckedKeys, ...allChildrenExceptPathsInBetween])
+      }
+
+      const isToolChecked = checkedKeysArr.includes(node.key);
+      if (isToolChecked) {
+        return setCheckedKeys([...checkedKeysArr.filter(k => k !== node.key)]);
+      }
+
+      // tool is not checked, neither any of its parents
+      // add the tool to checked list
+      return setCheckedKeys([...checkedKeysArr, node.key])
     }
   };
 
@@ -250,4 +394,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+export default ToolSelector;

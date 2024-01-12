@@ -5,7 +5,7 @@ import {
 import type { MenuProps, TabsProps } from "antd";
 import { Layout, Menu, theme, Tabs } from "antd";
 import TopBar from "./components/TopBar";
-import ToolSelector from "./components/ToolSelector";
+import ToolSelector from "./components/ToolSelector/index";
 import SubmitButton from "./components/SubmitButton";
 import Messages from "./components/Messages";
 
