@@ -8,33 +8,32 @@ interface ToolInformationModalProps {
   onClose: () => void;
 }
 
-
 const columns = [
   {
-    title: 'Name',
-    dataIndex: 'name',
-    key: 'name',
+    title: "Name",
+    dataIndex: "name",
+    key: "name",
   },
   {
-    title: 'Type',
-    dataIndex: 'type',
-    key: 'type',
+    title: "Type",
+    dataIndex: "type",
+    key: "type",
   },
   {
-    title: 'Required',
-    dataIndex: 'required',
-    key: 'required',
-    render: (required: boolean) => (required ? 'Yes' : 'No'),
+    title: "Required",
+    dataIndex: "required",
+    key: "required",
+    render: (required: boolean) => (required ? "Yes" : "No"),
   },
   {
-    title: 'Default',
-    dataIndex: 'default',
-    key: 'default',
+    title: "Default",
+    dataIndex: "default",
+    key: "default",
   },
   {
-    title: 'Description',
-    dataIndex: 'description',
-    key: 'description',
+    title: "Description",
+    dataIndex: "description",
+    key: "description",
   },
 ];
 
@@ -49,15 +48,17 @@ const ToolInformationModal: React.FC<ToolInformationModalProps> = ({
 
   const { name, description, arguments: toolArguments } = toolData;
 
-  const dataSource = Object.entries(toolArguments.properties).map(([argName, argDetails]) => ({
-    key: argName,
-    name: argName,
-    type: argDetails.type,
-    required: toolArguments.required && toolArguments.required.includes(argName),
-    default: JSON.stringify(toolArguments.default[argName]) || "",
-    description: argDetails.description,
-  }));
-
+  const dataSource = Object.entries(toolArguments.properties).map(
+    ([argName, argDetails]) => ({
+      key: argName,
+      name: argName,
+      type: argDetails.type,
+      required:
+        toolArguments.required && toolArguments.required.includes(argName),
+      default: JSON.stringify(toolArguments.default[argName]) || "",
+      description: argDetails.description,
+    })
+  );
 
   return (
     <Modal
@@ -73,8 +74,16 @@ const ToolInformationModal: React.FC<ToolInformationModalProps> = ({
     >
       <Card>
         <Typography.Paragraph>{description}</Typography.Paragraph>
-        <Typography.Title level={5}>Arguments List</Typography.Title>
-        <Table dataSource={dataSource} columns={columns} pagination={false} />
+        {dataSource.length > 0 && (
+          <>
+            <Typography.Title level={5}>Arguments List</Typography.Title>
+            <Table
+              dataSource={dataSource}
+              columns={columns}
+              pagination={false}
+            />
+          </>
+        )}
       </Card>
     </Modal>
   );

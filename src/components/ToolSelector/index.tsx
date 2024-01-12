@@ -137,6 +137,15 @@ const defaultData: ToolTreeData[] = [
       {
         title: "Mailchimp",
         key: "0-0-0",
+        metadata: {
+          "name": "get_list_of_database_tables",
+          "description": "returns the full list of all tables in the MySQL database for the project",
+          "arguments": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          }
+        },
         children: [
           {
             title: "get_list_of_mailchimp_subscribers",
