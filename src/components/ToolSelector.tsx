@@ -5,9 +5,6 @@ import "./tool-selector.css";
 
 const { Search } = Input;
 
-
-const dataList: { key: React.Key; title: string }[] = [];
-
 const defaultData: DataNode[] = [
   {
     title: "CRM",
@@ -118,10 +115,11 @@ const getParentKey = (key: React.Key, tree: DataNode[]): React.Key => {
   return parentKey!;
 };
 
-
 const App: React.FC = () => {
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
-  const [searchValue, setSearchValue] = useState('');
+  const [searchValue, setSearchValue] = useState("");
+  const [checkedKeys, setCheckedKeys] = useState<React.Key[] | { checked: React.Key[]; halfChecked: React.Key[] }>(["0-0-0"]);
+  const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [autoExpandParent, setAutoExpandParent] = useState(true);
 
   const onExpand = (newExpandedKeys: React.Key[]) => {
@@ -136,7 +134,11 @@ const App: React.FC = () => {
     const traverseAndExpand = (data: DataNode[] | undefined) => {
       if (data) {
         for (const item of data) {
-          if (String(item.title || "").toLowerCase().indexOf(value.toLowerCase()) > -1) {
+          if (
+            String(item.title || "")
+              .toLowerCase()
+              .indexOf(value.toLowerCase()) > -1
+          ) {
             const parentKey = getParentKey(item.key, defaultData);
             newExpandedKeys.push(parentKey);
             traverseAndExpand(item.children);
@@ -146,7 +148,7 @@ const App: React.FC = () => {
         }
       }
     };
-  
+
     traverseAndExpand(defaultData);
     setExpandedKeys(newExpandedKeys);
     setSearchValue(value);
@@ -159,7 +161,10 @@ const App: React.FC = () => {
         const strTitle = item.title as string;
         const index = strTitle.toLowerCase().indexOf(searchValue.toLowerCase());
         const beforeStr = strTitle.substring(0, index);
-        const matchedStr = strTitle.substring(index, index + searchValue.length);
+        const matchedStr = strTitle.substring(
+          index,
+          index + searchValue.length
+        );
         const afterStr = strTitle.slice(index + searchValue.length);
         const title =
           index > -1 ? (
@@ -184,10 +189,29 @@ const App: React.FC = () => {
     return loop(defaultData);
   }, [searchValue]);
 
+  const onCheck = (checkedKeysValue: React.Key[] | { checked: React.Key[]; halfChecked: React.Key[] },): void => {
+    console.log("onCheck", checkedKeysValue);
+    setCheckedKeys(checkedKeysValue);
+  };
+
+  const onSelect = (selectedKeysValue: React.Key[], info: any) => {
+    console.log("onSelect", info);
+    setSelectedKeys(selectedKeysValue);
+  };
+
   return (
     <div>
-      <Search style={{ marginBottom: 8 }} placeholder="Search" onChange={onChange} />
+      <Search
+        style={{ marginBottom: 8 }}
+        placeholder="Search"
+        onChange={onChange}
+      />
       <Tree
+        checkable
+        onCheck={onCheck}
+        checkedKeys={checkedKeys}
+        onSelect={onSelect}
+        selectedKeys={selectedKeys}
         onExpand={onExpand}
         expandedKeys={expandedKeys}
         autoExpandParent={autoExpandParent}
