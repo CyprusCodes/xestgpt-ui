@@ -1,10 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  BarChartOutlined,
-  CloudOutlined,
-  UploadOutlined,
-  UserOutlined,
-  VideoCameraOutlined,
+  MessageOutlined
 } from "@ant-design/icons";
 import type { MenuProps, TabsProps } from "antd";
 import { Layout, Menu, theme, Tabs } from "antd";
@@ -16,11 +12,7 @@ import Messages from "./components/Messages";
 const { Content, Footer, Sider } = Layout;
 
 const menuItems: MenuProps["items"] = [
-  UserOutlined,
-  VideoCameraOutlined,
-  UploadOutlined,
-  BarChartOutlined,
-  CloudOutlined,
+  MessageOutlined,
 ].map((icon, index) => ({
   key: String(index + 1),
   icon: React.createElement(icon),
@@ -139,7 +131,7 @@ const App: React.FC = () => {
         />
       </Sider>
       <Layout style={{ marginLeft: 200 }}>
-        {/*<TopBar></TopBar>*/}
+        <TopBar></TopBar>
         <Content style={{ padding: "10px 48px" }}>
           <Layout
             style={{
@@ -173,7 +165,7 @@ const App: React.FC = () => {
                     {
                       key: "1",
                       label: "Tools",
-                      children: <ToolSelector tools={tools} />,
+                      children: <ToolSelector />,
                     },
                   ]}
                   onChange={onChange}
