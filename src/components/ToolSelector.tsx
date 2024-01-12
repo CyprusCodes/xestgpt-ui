@@ -198,7 +198,6 @@ const App: React.FC = () => {
       | React.Key[]
       | { checked: React.Key[]; halfChecked: React.Key[] }
   ): void => {
-    console.log("onCheck", checkedKeysValue);
     setCheckedKeys(checkedKeysValue);
   };
 
