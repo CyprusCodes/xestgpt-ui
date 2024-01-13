@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Input, Tree, Tooltip } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
+import uniq from "lodash.uniq";
 
 import "./tool-selector.css";
 import { ToolData, ToolTreeData } from "../../types";
@@ -62,6 +63,21 @@ const findPathBetweenKeys = (
   }
 };
 
+const findNodeByKey = (currentData: ToolTreeData[], targetKey: React.Key): ToolTreeData | undefined => {
+  for (const node of currentData) {
+    if (node.key === targetKey) {
+      return node;
+    }
+
+    if (node.children?.length) {
+      const foundInChildren = node.children.map(c => findNodeByKey([c], targetKey)).find(Boolean);
+      if (foundInChildren) {
+        return foundInChildren;
+      }
+    }
+  }
+};
+
 const findAllChildrenKeys = (
   data: ToolTreeData[],
   targetKey: React.Key
@@ -116,14 +132,16 @@ const getParentKey = (key: React.Key, tree: ToolTreeData[]): React.Key => {
 
 interface ToolSelectorProps {
   initialToolTree: ToolTreeData[];
+  setSelectedTools: React.Dispatch<any>;
 }
 
 const ToolSelector: React.FC<ToolSelectorProps> = ({
   initialToolTree,
+  setSelectedTools,
 }) => {
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const [checkedKeys, setCheckedKeys] = useState<
+  const [checkedKeys, setCheckedKeysInternal] = useState<
     React.Key[] | { checked: React.Key[]; halfChecked: React.Key[] }
   >(["0-0-0"]);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
@@ -136,6 +154,17 @@ const ToolSelector: React.FC<ToolSelectorProps> = ({
   const onExpand = (newExpandedKeys: React.Key[]) => {
     setExpandedKeys(newExpandedKeys);
     setAutoExpandParent(false);
+  };
+
+  const setCheckedKeys = (data: any) => {
+    setCheckedKeysInternal(data);
+
+    const allKeysComprehensive = data.map((k: any) =>
+      findAllChildrenKeys(initialToolTree, k)
+    );
+    const allKeysFlattened = uniq(allKeysComprehensive.flat());
+    const toolsChecked = allKeysFlattened.map(k => findNodeByKey( initialToolTree, k as React.Key)).filter(v => v?.metadata);
+    setSelectedTools(toolsChecked);
   };
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {

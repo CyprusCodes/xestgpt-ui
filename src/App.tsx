@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  MessageOutlined
-} from "@ant-design/icons";
+import { MessageOutlined } from "@ant-design/icons";
 import type { MenuProps, TabsProps } from "antd";
 import { Layout, Menu, theme, Tabs } from "antd";
 import TopBar from "./components/TopBar";
@@ -13,9 +11,7 @@ import { ToolData, ToolTreeData } from "./types";
 
 const { Content, Footer, Sider } = Layout;
 
-const menuItems: MenuProps["items"] = [
-  MessageOutlined,
-].map((icon, index) => ({
+const menuItems: MenuProps["items"] = [MessageOutlined].map((icon, index) => ({
   key: String(index + 1),
   icon: React.createElement(icon),
   label: `conversation ${index + 1}`,
@@ -25,10 +21,19 @@ const onChange = (key: string) => {
   console.log(key);
 };
 
-async function postSessionMessage(messages: any) {
+async function postSessionMessage(
+  messages: any,
+  model: string,
+  maxTokens: number,
+  temperature: number,
+  enabledTools: any
+) {
   const url = "http://localhost:1313/session";
   const requestBody = {
     messages,
+    model,
+    maxTokens,
+    temperature,
   };
 
   try {
@@ -98,6 +103,19 @@ const App: React.FC = () => {
   }, []);
 
   const [messages, setMessages] = useState([]);
+  const [selectedTools, setSelectedTools] = useState<any>([]);
+
+  const postSessionMessagesPatched = (messages: any) => {
+    console.log(selectedTools);
+    const enabledTools: any = [];
+    return postSessionMessage(
+      messages,
+      "gpt-3.5-turbo-1106",
+      200,
+      0,
+      enabledTools
+    );
+  };
 
   return (
     <Layout hasSider>
@@ -136,7 +154,7 @@ const App: React.FC = () => {
               <Messages
                 messages={messages}
                 setMessages={setMessages}
-                postSessionMessage={postSessionMessage}
+                postSessionMessage={postSessionMessagesPatched}
               />
             </Content>
             <Sider
@@ -154,7 +172,12 @@ const App: React.FC = () => {
                     {
                       key: "1",
                       label: "Tools",
-                      children: <ToolSelector initialToolTree={tools} />,
+                      children: (
+                        <ToolSelector
+                          initialToolTree={tools}
+                          setSelectedTools={setSelectedTools}
+                        />
+                      ),
                     },
                   ]}
                   onChange={onChange}
@@ -167,7 +190,7 @@ const App: React.FC = () => {
           <SubmitButton
             setMessages={setMessages}
             messages={messages}
-            postSessionMessage={postSessionMessage}
+            postSessionMessage={postSessionMessagesPatched}
           />
         </Footer>
       </Layout>
