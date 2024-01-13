@@ -140,7 +140,7 @@ const App: React.FC = () => {
               />
             </Content>
             <Sider
-              width={370}
+              width={440}
               style={{
                 background: colorBgContainer,
                 borderLeft: "1px solid #f0f0f0",

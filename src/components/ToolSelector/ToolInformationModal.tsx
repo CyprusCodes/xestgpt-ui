@@ -5,7 +5,7 @@ import {
   CloudServerOutlined,
   ExclamationCircleOutlined,
 } from "@ant-design/icons";
-import { ToolData } from "../../types";
+import { FunctionType, ToolData } from "../../types";
 import getBrowserName from "./getBrowserName";
 
 interface ToolInformationModalProps {
@@ -19,6 +19,7 @@ const columns = [
     title: "Name",
     dataIndex: "name",
     key: "name",
+    render: (name: string) => <Tag style={{ fontSize: "14px" }}>{name}</Tag>,
   },
   {
     title: "Type",
@@ -52,7 +53,13 @@ const ToolInformationModal: React.FC<ToolInformationModalProps> = ({
     return null;
   }
 
-  const { name, description, arguments: toolArguments } = toolData;
+  const {
+    name,
+    description,
+    arguments: toolArguments,
+    functionType,
+    dangerous,
+  } = toolData;
 
   const dataSource = Object.entries(toolArguments.properties).map(
     ([argName, argDetails]) => ({
@@ -71,9 +78,11 @@ const ToolInformationModal: React.FC<ToolInformationModalProps> = ({
       title={
         <span>
           {name}{" "}
-          <Tooltip title="This tool has elevated access rights to your data sources, including deleting and updating data.">
-            <ExclamationCircleOutlined style={{ color: "orange" }} />
-          </Tooltip>{" "}
+          {dangerous && (
+            <Tooltip title="This tool has elevated access rights to your data sources. It can update, or delete your data.">
+              <ExclamationCircleOutlined style={{ color: "orange" }} />
+            </Tooltip>
+          )}
         </span>
       }
       open={visible}
@@ -86,20 +95,23 @@ const ToolInformationModal: React.FC<ToolInformationModalProps> = ({
       ]}
     >
       <Typography.Paragraph>{description}</Typography.Paragraph>
-      <Typography.Paragraph>
-        This tool runs on your{" "}
-        <Tag icon={<GlobalOutlined />} color="success">
-          {" "}
-          {getBrowserName()} Browser{" "}
-        </Tag>
-      </Typography.Paragraph>
-      <Typography.Paragraph>
-        This tool runs on your company's{" "}
-        <Tag icon={<CloudServerOutlined />} color="success">
-          {" "}
-          Cloud Servers{" "}
-        </Tag>
-      </Typography.Paragraph>
+
+      {functionType === FunctionType.BACKEND ? (
+        <Typography.Paragraph>
+          This tool runs on your{" "}
+          <Tag icon={<CloudServerOutlined />} color="success">
+            Cloud Servers{" "}
+          </Tag>
+        </Typography.Paragraph>
+      ) : (
+        <Typography.Paragraph>
+          This tool runs on your{" "}
+          <Tag icon={<GlobalOutlined />} color="success">
+            {getBrowserName()} Browser{" "}
+          </Tag>
+        </Typography.Paragraph>
+      )}
+
       {dataSource.length > 0 && (
         <>
           <Typography.Title level={5}>Arguments List</Typography.Title>
