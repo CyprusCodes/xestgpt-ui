@@ -110,41 +110,41 @@ const defaultData: ToolTreeData[] = [
     title: "CRM",
     key: "0-0",
     metadata: {
-      "name": "find_files_by_keyword",
-      "description": "Search files by keyword in their name within the codebase",
-      "arguments": {
-        "type": "object",
-        "default": {
-          "matchCase": false
+      name: "find_files_by_keyword",
+      description: "Search files by keyword in their name within the codebase",
+      arguments: {
+        type: "object",
+        default: {
+          matchCase: false,
         },
-        "properties": {
-          "keyword": {
-            "type": "string",
-            "description": "The keyword to search for in the codebase."
+        properties: {
+          keyword: {
+            type: "string",
+            description: "The keyword to search for in the codebase.",
           },
-          "matchCase": {
-            "type": "boolean",
-            "default": false,
-            "description": "Specify whether the search should be case-sensitive or case-insensitive."
-          }
+          matchCase: {
+            type: "boolean",
+            default: false,
+            description:
+              "Specify whether the search should be case-sensitive or case-insensitive.",
+          },
         },
-        "required": [
-          "keyword"
-        ]
-      }
+        required: ["keyword"],
+      },
     },
     children: [
       {
         title: "Mailchimp",
         key: "0-0-0",
         metadata: {
-          "name": "get_list_of_database_tables",
-          "description": "returns the full list of all tables in the MySQL database for the project",
-          "arguments": {
-            "type": "object",
-            "properties": {},
-            "required": []
-          }
+          name: "get_list_of_database_tables",
+          description:
+            "returns the full list of all tables in the MySQL database for the project",
+          arguments: {
+            type: "object",
+            properties: {},
+            required: [],
+          },
         },
         children: [
           {
@@ -272,6 +272,9 @@ const ToolSelector: React.FC = () => {
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [autoExpandParent, setAutoExpandParent] = useState(true);
   const [selectedToolData, setSelectedToolData] = useState<ToolData>();
+  const [visibleTooltips, setVisibleTooltips] = useState<
+    Record<string, boolean>
+  >({});
 
   const onExpand = (newExpandedKeys: React.Key[]) => {
     setExpandedKeys(newExpandedKeys);
@@ -325,12 +328,34 @@ const ToolSelector: React.FC = () => {
 
         let showInfoIcon = <></>;
         if (item.metadata) {
+          const tooltipKey = String(item.key);
+          const tooltipVisible = visibleTooltips[tooltipKey];
           showInfoIcon = (
-            <Tooltip title="show tool details">
+            <Tooltip
+              title="show tool details"
+              trigger={"hover"}
+              open={tooltipVisible}
+            >
               <span
                 onClick={(el: any) => {
                   el.stopPropagation();
                   setSelectedToolData(item.metadata);
+                  setVisibleTooltips({
+                    ...visibleTooltips,
+                    [tooltipKey]: false,
+                  });
+                }}
+                onMouseEnter={(e: any) => {
+                  setVisibleTooltips({
+                    ...visibleTooltips,
+                    [tooltipKey]: true,
+                  });
+                }}
+                onMouseLeave={(e: any) => {
+                  setVisibleTooltips({
+                    ...visibleTooltips,
+                    [tooltipKey]: false,
+                  });
                 }}
               >
                 <InfoCircleOutlined
@@ -368,7 +393,7 @@ const ToolSelector: React.FC = () => {
       });
 
     return loop(defaultData);
-  }, [searchValue]);
+  }, [searchValue, visibleTooltips]);
 
   const onCheck = (
     checkedKeysValue:
