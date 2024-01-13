@@ -1,6 +1,12 @@
 import React from "react";
-import { Modal, Button, Table, Typography, Card } from "antd";
+import { Modal, Button, Table, Typography, Tooltip, Tag } from "antd";
+import {
+  GlobalOutlined,
+  CloudServerOutlined,
+  ExclamationCircleOutlined,
+} from "@ant-design/icons";
 import { ToolData } from "../../types";
+import getBrowserName from "./getBrowserName";
 
 interface ToolInformationModalProps {
   toolData?: ToolData;
@@ -62,7 +68,14 @@ const ToolInformationModal: React.FC<ToolInformationModalProps> = ({
 
   return (
     <Modal
-      title={name}
+      title={
+        <span>
+          {name}{" "}
+          <Tooltip title="This tool has elevated access rights to your data sources, including deleting and updating data.">
+            <ExclamationCircleOutlined style={{ color: "orange" }} />
+          </Tooltip>{" "}
+        </span>
+      }
       open={visible}
       onCancel={onClose}
       width="800px"
@@ -72,19 +85,27 @@ const ToolInformationModal: React.FC<ToolInformationModalProps> = ({
         </Button>,
       ]}
     >
-      <Card>
-        <Typography.Paragraph>{description}</Typography.Paragraph>
-        {dataSource.length > 0 && (
-          <>
-            <Typography.Title level={5}>Arguments List</Typography.Title>
-            <Table
-              dataSource={dataSource}
-              columns={columns}
-              pagination={false}
-            />
-          </>
-        )}
-      </Card>
+      <Typography.Paragraph>{description}</Typography.Paragraph>
+      <Typography.Paragraph>
+        This tool runs on your{" "}
+        <Tag icon={<GlobalOutlined />} color="success">
+          {" "}
+          {getBrowserName()} Browser{" "}
+        </Tag>
+      </Typography.Paragraph>
+      <Typography.Paragraph>
+        This tool runs on your company's{" "}
+        <Tag icon={<CloudServerOutlined />} color="success">
+          {" "}
+          Cloud Servers{" "}
+        </Tag>
+      </Typography.Paragraph>
+      {dataSource.length > 0 && (
+        <>
+          <Typography.Title level={5}>Arguments List</Typography.Title>
+          <Table dataSource={dataSource} columns={columns} pagination={false} />
+        </>
+      )}
     </Modal>
   );
 };
