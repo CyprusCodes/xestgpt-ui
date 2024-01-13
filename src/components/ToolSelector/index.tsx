@@ -2,17 +2,11 @@ import React, { useMemo, useState } from "react";
 import { Input, Tree, Tooltip } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
 
-import type { DataNode } from "antd/es/tree";
 import "./tool-selector.css";
-import { ToolData } from "../../types";
+import { ToolData, ToolTreeData } from "../../types";
 import ToolInformationModal from "./ToolInformationModal";
 
 const { Search } = Input;
-
-interface ToolTreeData extends DataNode {
-  metadata?: ToolData;
-  children?: ToolTreeData[];
-}
 
 const computeParentKeys = (key: string): string[] => {
   const ids = key.split("-");
@@ -105,150 +99,7 @@ const findAllChildrenKeys = (
   return result;
 };
 
-const defaultData: ToolTreeData[] = [
-  {
-    title: "CRM",
-    key: "0-0",
-    metadata: {
-      name: "find_files_by_keyword",
-      description: "Search files by keyword in their name within the codebase",
-      arguments: {
-        type: "object",
-        default: {
-          matchCase: false,
-        },
-        properties: {
-          keyword: {
-            type: "string",
-            description: "The keyword to search for in the codebase.",
-          },
-          matchCase: {
-            type: "boolean",
-            default: false,
-            description:
-              "Specify whether the search should be case-sensitive or case-insensitive.",
-          },
-        },
-        required: ["keyword"],
-      },
-    },
-    children: [
-      {
-        title: "Mailchimp",
-        key: "0-0-0",
-        metadata: {
-          name: "get_list_of_database_tables",
-          description:
-            "returns the full list of all tables in the MySQL database for the project",
-          arguments: {
-            type: "object",
-            properties: {},
-            required: [],
-          },
-        },
-        children: [
-          {
-            title: "get_list_of_mailchimp_subscribers",
-            key: "0-0-0-0",
-          },
-          {
-            title: "send_email_to_mailing_list",
-            key: "0-0-0-1",
-          },
-          {
-            title: "get_list_of_mailing_lists",
-            key: "0-0-0-2",
-          },
-        ],
-      },
-      {
-        title: "Salesforce",
-        key: "0-0-1",
-        children: [
-          {
-            title: "get_list_of_leads",
-            key: "0-0-1-0",
-          },
-          {
-            title: "get_list_of_opportunities",
-            key: "0-0-1-1",
-          },
-          {
-            title: "get_list_of_tasks",
-            key: "0-0-1-2",
-          },
-        ],
-      },
-      {
-        title: "lets go",
-        key: "0-0-2",
-      },
-    ],
-  },
-  {
-    title: "Logistics Hub",
-    key: "0-1",
-    children: [
-      {
-        title: "Parcels",
-        key: "0-1-0",
-        children: [
-          {
-            title: "get_list_of_parcels_customers",
-            key: "0-1-0-0",
-          },
-          {
-            title: "get_list_parcels_scheduled_for_today",
-            key: "0-1-0-1",
-          },
-          {
-            title: "get_invoices",
-            key: "0-1-0-2",
-            metadata: {
-              name: "read_file_at_path",
-              description: "Read file content at a given path",
-              arguments: {
-                type: "object",
-                default: {},
-                properties: {
-                  path: {
-                    type: "string",
-                    description: "the directory path to show contents",
-                  },
-                },
-                required: ["path"],
-              },
-            },
-          },
-        ],
-      },
-      {
-        title: "Storage",
-        key: "0-1-1",
-        children: [
-          {
-            title: "get_total_space_occupied",
-            key: "0-1-1-0",
-          },
-          {
-            title: "show_inbound_deliveries_for_today",
-            key: "0-1-1-1",
-          },
-        ],
-      },
-      {
-        title: "Something else",
-        key: "0-1-2",
-      },
-    ],
-  },
-  {
-    title: "Internal APIs",
-    key: "0-2",
-  },
-];
-
-const getParentKey = (key: React.Key, tree: DataNode[]): React.Key => {
+const getParentKey = (key: React.Key, tree: ToolTreeData[]): React.Key => {
   let parentKey: React.Key;
   for (let i = 0; i < tree.length; i++) {
     const node = tree[i];
@@ -263,7 +114,13 @@ const getParentKey = (key: React.Key, tree: DataNode[]): React.Key => {
   return parentKey!;
 };
 
-const ToolSelector: React.FC = () => {
+interface ToolSelectorProps {
+  initialToolTree: ToolTreeData[];
+}
+
+const ToolSelector: React.FC<ToolSelectorProps> = ({
+  initialToolTree,
+}) => {
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [checkedKeys, setCheckedKeys] = useState<
@@ -285,7 +142,7 @@ const ToolSelector: React.FC = () => {
     const { value } = e.target;
     const newExpandedKeys: React.Key[] = [];
 
-    const traverseAndExpand = (data: DataNode[] | undefined) => {
+    const traverseAndExpand = (data: ToolTreeData[] | undefined) => {
       if (data) {
         for (const item of data) {
           if (
@@ -293,7 +150,7 @@ const ToolSelector: React.FC = () => {
               .toLowerCase()
               .indexOf(value.toLowerCase()) > -1
           ) {
-            const parentKey = getParentKey(item.key, defaultData);
+            const parentKey = getParentKey(item.key, initialToolTree);
             newExpandedKeys.push(parentKey);
             traverseAndExpand(item.children);
           } else {
@@ -303,7 +160,7 @@ const ToolSelector: React.FC = () => {
       }
     };
 
-    traverseAndExpand(defaultData);
+    traverseAndExpand(initialToolTree);
     const newExpandedKeysWithParents = newExpandedKeys.map((k) =>
       computeParentKeys(String(k))
     );
@@ -316,7 +173,7 @@ const ToolSelector: React.FC = () => {
 
   const treeData = useMemo(() => {
     const loop = (data: ToolTreeData[]): ToolTreeData[] =>
-      data.map((item) => {
+      data.map((item: ToolTreeData) => {
         const strTitle = item.title as string;
         const index = strTitle.toLowerCase().indexOf(searchValue.toLowerCase());
         const beforeStr = strTitle.substring(0, index);
@@ -392,8 +249,8 @@ const ToolSelector: React.FC = () => {
         };
       });
 
-    return loop(defaultData);
-  }, [searchValue, visibleTooltips]);
+    return loop(initialToolTree);
+  }, [initialToolTree, searchValue, visibleTooltips]);
 
   const onCheck = (
     checkedKeysValue:
@@ -441,13 +298,16 @@ const ToolSelector: React.FC = () => {
           }
         );
 
-        const allChildren = findAllChildrenKeys(defaultData, topMostParentKey);
+        const allChildren = findAllChildrenKeys(
+          initialToolTree,
+          topMostParentKey
+        );
         const prunedCheckedKeys = checkedKeysArr.filter(
           (key) => !allChildren.includes(String(key))
         );
 
         const pathsBetween = findPathBetweenKeys(
-          defaultData,
+          initialToolTree,
           topMostParentKey,
           node.key
         );

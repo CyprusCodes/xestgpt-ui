@@ -8,6 +8,8 @@ import TopBar from "./components/TopBar";
 import ToolSelector from "./components/ToolSelector/index";
 import SubmitButton from "./components/SubmitButton";
 import Messages from "./components/Messages";
+import parseToolDataIntoTreeFormat from "./utils/parseToolDataIntoTreeFormat";
+import { ToolData, ToolTreeData } from "./types";
 
 const { Content, Footer, Sider } = Layout;
 
@@ -22,19 +24,6 @@ const menuItems: MenuProps["items"] = [
 const onChange = (key: string) => {
   console.log(key);
 };
-
-const items: TabsProps["items"] = [
-  {
-    key: "1",
-    label: "Tools",
-    children: <ToolSelector />,
-  },
-  {
-    key: "2",
-    label: "Knowledge Base",
-    children: <ToolSelector />,
-  },
-];
 
 async function postSessionMessage(messages: any) {
   const url = "http://localhost:1313/session";
@@ -97,11 +86,11 @@ const App: React.FC = () => {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
-  const [tools, setTools] = useState([]);
+  const [tools, setTools] = useState<ToolTreeData[]>([]);
 
   const getToolsFn = async () => {
     const toolsResponse = await getTools();
-    setTools(toolsResponse.tools);
+    setTools(parseToolDataIntoTreeFormat(toolsResponse.tools as ToolData[]));
   };
 
   useEffect(() => {
@@ -165,7 +154,7 @@ const App: React.FC = () => {
                     {
                       key: "1",
                       label: "Tools",
-                      children: <ToolSelector />,
+                      children: <ToolSelector initialToolTree={tools} />,
                     },
                   ]}
                   onChange={onChange}
