@@ -34,6 +34,7 @@ async function postSessionMessage(
     model,
     maxTokens,
     temperature,
+    enabledTools
   };
 
   try {
@@ -106,14 +107,12 @@ const App: React.FC = () => {
   const [selectedTools, setSelectedTools] = useState<any>([]);
 
   const postSessionMessagesPatched = (messages: any) => {
-    console.log(selectedTools);
-    const enabledTools: any = [];
     return postSessionMessage(
       messages,
       "gpt-3.5-turbo-1106",
       200,
       0,
-      enabledTools
+      selectedTools
     );
   };
 

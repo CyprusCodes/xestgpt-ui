@@ -143,7 +143,7 @@ const ToolSelector: React.FC<ToolSelectorProps> = ({
   const [searchValue, setSearchValue] = useState("");
   const [checkedKeys, setCheckedKeysInternal] = useState<
     React.Key[] | { checked: React.Key[]; halfChecked: React.Key[] }
-  >(["0-0-0"]);
+  >([]);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [autoExpandParent, setAutoExpandParent] = useState(true);
   const [selectedToolData, setSelectedToolData] = useState<ToolData>();
