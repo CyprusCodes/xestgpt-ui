@@ -83,7 +83,7 @@ const patchLastMessageToolInfo = (messages: Message[], toolInfo: Pick<ToolDetail
   };
   const newMessages = [
     ...shallowCopyOfMessagesWithoutLast,
-    lastMessage,
+    copyOfLastMessage,
   ];
 
   return newMessages;
