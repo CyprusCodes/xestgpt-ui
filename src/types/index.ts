@@ -36,7 +36,7 @@ interface ToolTreeDataType extends DataNode {
 
 export type UIFunctionArguments<AIProvidedParams> = {
   functionArgs: AIProvidedParams;
-  previousRunResults: string;
+  previousRunResults?: string;
   captureResults: (result: string) => void;
 };
 
@@ -50,6 +50,7 @@ export enum MessageRole {
 type MessageRoleExceptFunctions = Exclude<MessageRole, MessageRole.FUNCTION>;
 
 interface GenericMessage {
+  id: string,
   unuseful: boolean;
   hiddenFromUser: boolean;
   message?: string;
@@ -65,6 +66,7 @@ export interface ToolDetails {
 }
 
 interface ToolMessage {
+  id: string,
   unuseful: boolean;
   hiddenFromUser: boolean;
   message?: string;

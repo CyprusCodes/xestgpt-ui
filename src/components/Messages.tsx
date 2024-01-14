@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import ReactMarkdown from "react-markdown";
@@ -30,7 +30,14 @@ import {
   CloseOutlined,
   ClockCircleOutlined,
 } from "@ant-design/icons";
-import { Message, MessageRole, ToolDetails } from "../types";
+import {
+  Message,
+  MessageRole,
+  ToolDetails,
+  ToolData,
+  FunctionType,
+} from "../types";
+import UIToolComponent from "../ui-tools";
 
 const { TabPane } = Tabs;
 
@@ -66,34 +73,34 @@ const menuProps = {
   onClick: () => {},
 };
 
-const patchLastMessageToolInfo = (messages: Message[], toolInfo: Pick<ToolDetails, "confirmed" | "output" | "runAt">): Message[] => {
+const patchLastMessageToolInfo = (
+  messages: Message[],
+  toolInfo: Pick<ToolDetails, "confirmed" | "output" | "runAt">
+): Message[] => {
   const lastMessage = messages[messages.length - 1];
   if (lastMessage.role !== MessageRole.FUNCTION) {
     return messages;
   }
 
-  const shallowCopyOfMessagesWithoutLast = messages.slice(
-    0,
-    -1
-  );
+  const shallowCopyOfMessagesWithoutLast = messages.slice(0, -1);
   const copyOfLastMessage = { ...lastMessage };
   copyOfLastMessage.tool = {
     ...copyOfLastMessage.tool,
-    ...toolInfo
+    ...toolInfo,
   };
-  const newMessages = [
-    ...shallowCopyOfMessagesWithoutLast,
-    copyOfLastMessage,
-  ];
+  const newMessages = [...shallowCopyOfMessagesWithoutLast, copyOfLastMessage];
 
   return newMessages;
-}
+};
 
 const renderMessageCard = (
   message: Message,
   messages: Message[],
   setMessages: React.Dispatch<Message[]>,
-  postSessionMessage: any
+  postSessionMessage: any,
+  tools: ToolData[],
+  toolPaneSelection: Record<string, string>,
+  setToolPaneSelection: React.Dispatch<Record<string, string>>
 ) => {
   if (message.unuseful) {
     return (
@@ -104,10 +111,16 @@ const renderMessageCard = (
   }
 
   if (message.role === MessageRole.FUNCTION && message.tool) {
-    const toolDetails = message.tool;
-    const isRejected = toolDetails.confirmed === false;
+    const toolCallDetails = message.tool;
+
+    // todo: this should be matched on tool id, not name (requires backend change)
+    const toolData = tools.find((t) => {
+      return t.name === toolCallDetails.name;
+    });
+
+    const isRejected = toolCallDetails.confirmed === false;
     const isWaitingResponse =
-      toolDetails.confirmed !== false && toolDetails.confirmed !== true;
+      toolCallDetails.confirmed !== false && toolCallDetails.confirmed !== true;
     let Ribbon: any = React.Fragment;
     let ribbonProps = {};
 
@@ -138,22 +151,30 @@ const renderMessageCard = (
     }
 
     return (
-      <Ribbon {...ribbonProps}>
+      <Ribbon {...ribbonProps} key={message.id}>
         <Card
           bodyStyle={{ paddingTop: "0" }}
           title={
             <>
               use tool:{" "}
               <span style={{ color: "green", fontWeight: "bold" }}>
-                {toolDetails.name}
+                {toolCallDetails.name}
               </span>
             </>
           }
         >
-          <Tabs defaultActiveKey="1">
+          <Tabs
+            activeKey={toolPaneSelection[message.id] || "1"}
+            onChange={(newKey) => {
+              setToolPaneSelection({
+                ...toolPaneSelection,
+                [message.id]: newKey,
+              });
+            }}
+          >
             <TabPane tab="Call Arguments" key="1">
               <SyntaxHighlighter language="javascript" style={oneDark}>
-                {JSON.stringify(toolDetails.args, null, 2)}
+                {JSON.stringify(toolCallDetails.args, null, 2)}
               </SyntaxHighlighter>
               {isWaitingResponse && (
                 <Space>
@@ -161,20 +182,23 @@ const renderMessageCard = (
                     type="primary"
                     icon={<CheckOutlined />}
                     onClick={() => {
-                      const newMessages = patchLastMessageToolInfo(messages, { confirmed: true });
+                      const newMessages = patchLastMessageToolInfo(messages, {
+                        confirmed: true,
+                      });
                       setMessages(newMessages);
 
-                      // todo: if tool is backend post the message
-
-                      postSessionMessage(newMessages).then((data: any) => {
-                        if (data.messages) {
-                          setMessages(data.messages);
-                        }
-                      });
-                      // todo: else
-                      // if the tool type is UI
-                      // switch to output tab
-                      // display the tool
+                      if (toolData?.functionType === FunctionType.BACKEND) {
+                        postSessionMessage(newMessages).then((data: any) => {
+                          if (data.messages) {
+                            setMessages(data.messages);
+                          }
+                        });
+                      } else if (toolData?.functionType === FunctionType.UI) {
+                        setToolPaneSelection({
+                          ...toolPaneSelection,
+                          [message.id]: "2",
+                        });
+                      }
                     }}
                   >
                     Accept and run tool
@@ -183,7 +207,9 @@ const renderMessageCard = (
                     danger
                     icon={<CloseOutlined />}
                     onClick={() => {
-                      const newMessages = patchLastMessageToolInfo(messages, { confirmed: false });
+                      const newMessages = patchLastMessageToolInfo(messages, {
+                        confirmed: false,
+                      });
                       setMessages(newMessages);
                       postSessionMessage(newMessages).then((data: any) => {
                         if (data.messages) {
@@ -197,10 +223,20 @@ const renderMessageCard = (
                 </Space>
               )}
             </TabPane>
-            {toolDetails.confirmed === true && (
+            {toolCallDetails.confirmed === true && (
               <TabPane tab="Output" key="2">
-                {/* todo: tool type ui: then render component, with AI provided params */}
-                <p>{toolDetails.output}</p>
+                {toolData?.functionType === FunctionType.UI ? (
+                  <UIToolComponent
+                    functionName={toolCallDetails.name}
+                    functionArgs={toolCallDetails.args}
+                    previousRunResults={toolCallDetails.output}
+                    captureResults={(msg: string) => {
+                      console.log(`captured user response:`, msg);
+                    }}
+                  />
+                ) : (
+                  <p>{toolCallDetails.output}</p>
+                )}
               </TabPane>
             )}
           </Tabs>
@@ -235,7 +271,20 @@ const getMessageIcon = (role: string) => {
   return <UserOutlined style={{ fontSize: "24px", color: "green" }} />;
 };
 
-const Messages = ({ messages, setMessages, postSessionMessage }: any) => {
+const Messages = ({
+  messages,
+  setMessages,
+  postSessionMessage,
+  tools,
+}: {
+  messages: Message[];
+  setMessages: React.Dispatch<Message[]>;
+  postSessionMessage: (messages: Message[]) => Promise<any>;
+  tools: ToolData[];
+}) => {
+  const [toolPaneSelection, setToolPaneSelection] = useState<
+    Record<string, string>
+  >({});
   if (!messages.length) {
     return (
       <Empty
@@ -289,11 +338,22 @@ const Messages = ({ messages, setMessages, postSessionMessage }: any) => {
                   m,
                   messages,
                   setMessages,
-                  postSessionMessage
+                  postSessionMessage,
+                  tools,
+                  toolPaneSelection,
+                  setToolPaneSelection
                 )}
               </Badge.Ribbon>
             ) : (
-              renderMessageCard(m, messages, setMessages, postSessionMessage)
+              renderMessageCard(
+                m,
+                messages,
+                setMessages,
+                postSessionMessage,
+                tools,
+                toolPaneSelection,
+                setToolPaneSelection
+              )
             )}
           </Timeline.Item>
         );

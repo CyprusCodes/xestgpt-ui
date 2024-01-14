@@ -93,9 +93,11 @@ const App: React.FC = () => {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
   const [tools, setTools] = useState<ToolTreeData[]>([]);
+  const [rawToolsData, setRawToolsData] = useState<ToolData[]>([]);
 
   const getToolsFn = async () => {
     const toolsResponse = await getTools();
+    setRawToolsData(toolsResponse.tools as ToolData[]);
     setTools(parseToolDataIntoTreeFormat(toolsResponse.tools as ToolData[]));
   };
 
@@ -154,6 +156,7 @@ const App: React.FC = () => {
                 messages={messages}
                 setMessages={setMessages}
                 postSessionMessage={postSessionMessagesPatched}
+                tools={rawToolsData}
               />
             </Content>
             <Sider

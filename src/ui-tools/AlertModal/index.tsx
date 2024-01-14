@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Modal, Button } from "antd";
+import { Modal } from "antd";
 import { UIFunctionArguments } from "../../types";
 
 interface ModalArgs {
@@ -11,11 +11,7 @@ const AlertModal: React.FC<UIFunctionArguments<ModalArgs>> = ({
   previousRunResults,
   captureResults,
 }) => {
-  const [isModalVisible, setIsModalVisible] = useState(false);
-
-  const showModal = () => {
-    setIsModalVisible(true);
-  };
+  const [isModalVisible, setIsModalVisible] = useState(true);
 
   const handleOk = () => {
     console.log("Modal is closed");
@@ -30,19 +26,15 @@ const AlertModal: React.FC<UIFunctionArguments<ModalArgs>> = ({
   };
 
   return (
-    <>
-      <Button type="primary" onClick={showModal}>
-        Open Modal
-      </Button>
-      <Modal
-        title="Basic Modal"
-        open={isModalVisible}
-        onOk={handleOk}
-        onCancel={handleCancel}
-      >
-        {message}
-      </Modal>
-    </>
+    <Modal
+      title="Basic Modal"
+      open={isModalVisible}
+      onOk={handleOk}
+      onCancel={handleCancel}
+    >
+      <p>AI: {message}</p>
+      <p>User: {previousRunResults}</p>
+    </Modal>
   );
 };
 
