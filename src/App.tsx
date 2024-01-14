@@ -7,7 +7,7 @@ import ToolSelector from "./components/ToolSelector/index";
 import SubmitButton from "./components/SubmitButton";
 import Messages from "./components/Messages";
 import parseToolDataIntoTreeFormat from "./utils/parseToolDataIntoTreeFormat";
-import { ToolData, ToolTreeData } from "./types";
+import { Message, ToolData, ToolTreeData } from "./types";
 
 const { Content, Footer, Sider } = Layout;
 
@@ -22,7 +22,7 @@ const onChange = (key: string) => {
 };
 
 async function postSessionMessage(
-  messages: any,
+  messages: Message[],
   model: string,
   maxTokens: number,
   temperature: number,
@@ -103,10 +103,10 @@ const App: React.FC = () => {
     getToolsFn();
   }, []);
 
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [selectedTools, setSelectedTools] = useState<any>([]);
 
-  const postSessionMessagesPatched = (messages: any) => {
+  const postSessionMessagesPatched = (messages: Message[]) => {
     return postSessionMessage(
       messages,
       "gpt-3.5-turbo-1106",

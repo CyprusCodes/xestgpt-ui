@@ -34,4 +34,45 @@ interface ToolTreeDataType extends DataNode {
   children?: ToolTreeDataType[];
 }
 
+export type UIFunctionArguments<AIProvidedParams> = {
+  functionArgs: AIProvidedParams;
+  previousRunResults: string;
+  captureResults: (result: string) => void;
+};
+
+export enum MessageRole {
+  FUNCTION = "function",
+  USER = "user",
+  ASSISTANT = "assistant",
+  SYSTEM = "system",
+}
+
+type MessageRoleExceptFunctions = Exclude<MessageRole, MessageRole.FUNCTION>;
+
+interface GenericMessage {
+  unuseful: boolean;
+  hiddenFromUser: boolean;
+  message?: string;
+  role: MessageRoleExceptFunctions;
+}
+
+export interface ToolDetails {
+  args: any,
+  name: string
+  confirmed?: boolean,
+  runAt?: string,
+  output?: string
+}
+
+interface ToolMessage {
+  unuseful: boolean;
+  hiddenFromUser: boolean;
+  message?: string;
+  role: MessageRole.FUNCTION;
+  tool: ToolDetails
+}
+
+export type Message = GenericMessage | ToolMessage;
+
+
 export type ToolTreeData = ToolTreeDataType;

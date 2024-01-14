@@ -30,6 +30,7 @@ import {
   CloseOutlined,
   ClockCircleOutlined,
 } from "@ant-design/icons";
+import { Message, MessageRole, ToolDetails } from "../types";
 
 const { TabPane } = Tabs;
 
@@ -65,10 +66,33 @@ const menuProps = {
   onClick: () => {},
 };
 
+const patchLastMessageToolInfo = (messages: Message[], toolInfo: Pick<ToolDetails, "confirmed" | "output" | "runAt">): Message[] => {
+  const lastMessage = messages[messages.length - 1];
+  if (lastMessage.role !== MessageRole.FUNCTION) {
+    return messages;
+  }
+
+  const shallowCopyOfMessagesWithoutLast = messages.slice(
+    0,
+    -1
+  );
+  const copyOfLastMessage = { ...lastMessage };
+  copyOfLastMessage.tool = {
+    ...copyOfLastMessage.tool,
+    ...toolInfo
+  };
+  const newMessages = [
+    ...shallowCopyOfMessagesWithoutLast,
+    lastMessage,
+  ];
+
+  return newMessages;
+}
+
 const renderMessageCard = (
-  message: any,
-  messages: any,
-  setMessages: any,
+  message: Message,
+  messages: Message[],
+  setMessages: React.Dispatch<Message[]>,
   postSessionMessage: any
 ) => {
   if (message.unuseful) {
@@ -79,7 +103,7 @@ const renderMessageCard = (
     );
   }
 
-  if (message.tool) {
+  if (message.role === MessageRole.FUNCTION && message.tool) {
     const toolDetails = message.tool;
     const isRejected = toolDetails.confirmed === false;
     const isWaitingResponse =
@@ -137,15 +161,20 @@ const renderMessageCard = (
                     type="primary"
                     icon={<CheckOutlined />}
                     onClick={() => {
-                      const lastMessage = messages[messages.length - 1];
-                      lastMessage.tool.confirmed = true;
-                      const newMessages = [...messages];
+                      const newMessages = patchLastMessageToolInfo(messages, { confirmed: true });
                       setMessages(newMessages);
+
+                      // todo: if tool is backend post the message
+
                       postSessionMessage(newMessages).then((data: any) => {
                         if (data.messages) {
                           setMessages(data.messages);
                         }
                       });
+                      // todo: else
+                      // if the tool type is UI
+                      // switch to output tab
+                      // display the tool
                     }}
                   >
                     Accept and run tool
@@ -154,9 +183,7 @@ const renderMessageCard = (
                     danger
                     icon={<CloseOutlined />}
                     onClick={() => {
-                      const lastMessage = messages[messages.length - 1];
-                      lastMessage.tool.confirmed = false;
-                      const newMessages = [...messages];
+                      const newMessages = patchLastMessageToolInfo(messages, { confirmed: false });
                       setMessages(newMessages);
                       postSessionMessage(newMessages).then((data: any) => {
                         if (data.messages) {
@@ -172,6 +199,7 @@ const renderMessageCard = (
             </TabPane>
             {toolDetails.confirmed === true && (
               <TabPane tab="Output" key="2">
+                {/* todo: tool type ui: then render component, with AI provided params */}
                 <p>{toolDetails.output}</p>
               </TabPane>
             )}
