@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Input, Tree, Tooltip } from "antd";
+import { Input, Tree, Tooltip, Checkbox } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import uniq from "lodash.uniq";
 
@@ -63,14 +63,19 @@ const findPathBetweenKeys = (
   }
 };
 
-const findNodeByKey = (currentData: ToolTreeData[], targetKey: React.Key): ToolTreeData | undefined => {
+const findNodeByKey = (
+  currentData: ToolTreeData[],
+  targetKey: React.Key
+): ToolTreeData | undefined => {
   for (const node of currentData) {
     if (node.key === targetKey) {
       return node;
     }
 
     if (node.children?.length) {
-      const foundInChildren = node.children.map(c => findNodeByKey([c], targetKey)).find(Boolean);
+      const foundInChildren = node.children
+        .map((c) => findNodeByKey([c], targetKey))
+        .find(Boolean);
       if (foundInChildren) {
         return foundInChildren;
       }
@@ -150,6 +155,7 @@ const ToolSelector: React.FC<ToolSelectorProps> = ({
   const [visibleTooltips, setVisibleTooltips] = useState<
     Record<string, boolean>
   >({});
+  const [selectAll, setSelectAll] = useState<boolean>(false);
 
   const onExpand = (newExpandedKeys: React.Key[]) => {
     setExpandedKeys(newExpandedKeys);
@@ -163,7 +169,9 @@ const ToolSelector: React.FC<ToolSelectorProps> = ({
       findAllChildrenKeys(initialToolTree, k)
     );
     const allKeysFlattened = uniq(allKeysComprehensive.flat());
-    const toolsChecked = allKeysFlattened.map(k => findNodeByKey( initialToolTree, k as React.Key)).filter(v => v?.metadata);
+    const toolsChecked = allKeysFlattened
+      .map((k) => findNodeByKey(initialToolTree, k as React.Key))
+      .filter((v) => v?.metadata);
     setSelectedTools(toolsChecked);
   };
 
@@ -370,6 +378,22 @@ const ToolSelector: React.FC<ToolSelectorProps> = ({
         placeholder="Search"
         onChange={onChange}
       />
+      <Checkbox
+        style={{ marginLeft: "24px", marginBottom: "4px" }}
+        checked={selectAll}
+        onClick={() => {
+          const newSelectAll = !selectAll;
+          setSelectAll(newSelectAll);
+          if (newSelectAll) {
+            const topLevelKeys = initialToolTree.map(t => t.key);
+            setCheckedKeys(topLevelKeys);
+          } else {
+            setCheckedKeys([]);
+          }
+        }}
+      >
+        <span style={{ paddingLeft: "4px" }}>Select/Deselect All Tools</span>
+      </Checkbox>
       <Tree
         checkable
         onCheck={onCheck}
