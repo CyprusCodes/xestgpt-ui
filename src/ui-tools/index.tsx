@@ -1,9 +1,11 @@
 import React from "react";
 import { UIFunctionArguments } from "../types";
 import AlertModal from "./AlertModal";
+import InputField from "./InputField";
 
 const UITools: Record<string, React.FC<UIFunctionArguments<any>>> = {
   show_alert_modal: AlertModal,
+  show_input_field: InputField
 };
 
 const UIToolComponent = ({

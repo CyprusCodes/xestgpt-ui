@@ -8,10 +8,14 @@ interface ModalArgs {
 
 const AlertModal: React.FC<UIFunctionArguments<ModalArgs>> = ({
   functionArgs: { message },
-  previousRunResults,
-  captureResults,
+  previousRunResults, // if non-empty, you should render a READ ONLY 
+  captureResults, // should only be called ONCE
 }) => {
   const [isModalVisible, setIsModalVisible] = useState(true);
+
+  if (previousRunResults) {
+    return <span>{previousRunResults}</span>
+  }
 
   const handleOk = () => {
     console.log("Modal is closed");
@@ -32,8 +36,7 @@ const AlertModal: React.FC<UIFunctionArguments<ModalArgs>> = ({
       onOk={handleOk}
       onCancel={handleCancel}
     >
-      <p>AI: {message}</p>
-      <p>User: {previousRunResults}</p>
+      <p>{message}</p>
     </Modal>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ErrorBoundary } from "react-error-boundary";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import ReactMarkdown from "react-markdown";
@@ -226,14 +227,37 @@ const renderMessageCard = (
             {toolCallDetails.confirmed === true && (
               <TabPane tab="Output" key="2">
                 {toolData?.functionType === FunctionType.UI ? (
-                  <UIToolComponent
-                    functionName={toolCallDetails.name}
-                    functionArgs={toolCallDetails.args}
-                    previousRunResults={toolCallDetails.output}
-                    captureResults={(msg: string) => {
-                      console.log(`captured user response:`, msg);
+                  <ErrorBoundary
+                    fallback={
+                      <div>
+                        Failed to render {toolCallDetails.name} tool. Please
+                        report this error.
+                      </div>
+                    }
+                    onError={(error) => {
+                      // todo: report this error to some central place
+                      // with tool name, args, and conversation id
+                      console.log("captured error", error);
                     }}
-                  />
+                  >
+                    <UIToolComponent
+                      functionName={toolCallDetails.name}
+                      functionArgs={toolCallDetails.args}
+                      previousRunResults={toolCallDetails.output}
+                      captureResults={(msg: string) => {
+                        const newMessages = patchLastMessageToolInfo(messages, {
+                          output: msg,
+                          runAt: new Date().toISOString(),
+                        });
+                        setMessages(newMessages);
+                        postSessionMessage(newMessages).then((data: any) => {
+                          if (data.messages) {
+                            setMessages(data.messages);
+                          }
+                        });
+                      }}
+                    />
+                  </ErrorBoundary>
                 ) : (
                   <p>{toolCallDetails.output}</p>
                 )}

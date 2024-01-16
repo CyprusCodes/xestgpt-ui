@@ -146,7 +146,7 @@ const App: React.FC = () => {
               padding: "24px 0",
               background: colorBgContainer,
               borderRadius: borderRadiusLG,
-              height: "calc(100vh - 175px)",
+              height: "calc(100vh - 235px)",
             }}
           >
             <Content
