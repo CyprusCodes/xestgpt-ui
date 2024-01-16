@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -7,25 +7,8 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/vs2015.css";
 
+import { Card, Badge, Button, Tabs, Space } from "antd";
 import {
-  Card,
-  Timeline,
-  Badge,
-  Dropdown,
-  MenuProps,
-  Button,
-  Tabs,
-  Space,
-  Empty,
-} from "antd";
-import {
-  ToolOutlined,
-  RobotOutlined,
-  UserOutlined,
-  DeleteOutlined,
-  ExclamationCircleOutlined,
-  BackwardOutlined,
-  ForkOutlined,
   StopOutlined,
   CheckOutlined,
   CloseOutlined,
@@ -34,44 +17,48 @@ import {
 import {
   Message,
   MessageRole,
-  ToolDetails,
   ToolData,
   FunctionType,
+  ToolDetails,
 } from "../types";
 import UIToolComponent from "../ui-tools";
 
 const { TabPane } = Tabs;
 
-const items: MenuProps["items"] = [
-  {
-    label: "rewind to here",
-    key: "1",
-    icon: <BackwardOutlined />,
-  },
-  {
-    label: "fork to new window",
-    key: "2",
-    icon: <ForkOutlined />,
-  },
-  {
-    label: "delete",
-    key: "3",
-    icon: <DeleteOutlined style={{ fontSize: "14px", color: "red" }} />,
-  },
-  {
-    label: "flag as irrelevant",
-    key: "4",
-    icon: (
-      <ExclamationCircleOutlined
-        style={{ fontSize: "14px", color: "orange" }}
-      />
-    ),
-  },
-];
+const confirmToolRun = ({
+  messageId,
+  messages,
+  setMessages,
+  toolData,
+  postSessionMessage,
+  toolPaneSelection,
+  setToolPaneSelection,
+}: {
+    messageId: string,
+    messages: Message[],
+    setMessages: React.Dispatch<Message[]>;
+    postSessionMessage: any;
+    toolData?: ToolData;
+    toolPaneSelection: Record<string, string>;
+    setToolPaneSelection: React.Dispatch<Record<string, string>>;
+}) => {
+  const newMessages = patchLastMessageToolInfo(messages, {
+    confirmed: true,
+  });
+  setMessages(newMessages);
 
-const menuProps = {
-  items,
-  onClick: () => {},
+  if (toolData?.functionType === FunctionType.BACKEND) {
+    postSessionMessage(newMessages).then((data: any) => {
+      if (data.messages) {
+        setMessages(data.messages);
+      }
+    });
+  } else if (toolData?.functionType === FunctionType.UI) {
+    setToolPaneSelection({
+      ...toolPaneSelection,
+      [messageId]: "2",
+    });
+  }
 };
 
 const patchLastMessageToolInfo = (
@@ -94,15 +81,52 @@ const patchLastMessageToolInfo = (
   return newMessages;
 };
 
-const renderMessageCard = (
-  message: Message,
-  messages: Message[],
-  setMessages: React.Dispatch<Message[]>,
-  postSessionMessage: any,
-  tools: ToolData[],
-  toolPaneSelection: Record<string, string>,
-  setToolPaneSelection: React.Dispatch<Record<string, string>>
-) => {
+interface MessageCardProps {
+  message: Message;
+  messages: Message[];
+  setMessages: React.Dispatch<Message[]>;
+  postSessionMessage: any;
+  tools: ToolData[];
+  toolPaneSelection: Record<string, string>;
+  setToolPaneSelection: React.Dispatch<Record<string, string>>;
+}
+
+const MessageCard: React.FC<MessageCardProps> = ({
+  message,
+  messages,
+  setMessages,
+  postSessionMessage,
+  tools,
+  toolPaneSelection,
+  setToolPaneSelection,
+}) => {
+  useEffect(() => {
+    if (message.role === MessageRole.FUNCTION && message.tool) {
+      const toolCallDetails = message.tool;
+      // todo: this should be matched on tool id, not name (requires backend change)
+      const toolData = tools.find((t) => {
+        return t.name === toolCallDetails.name;
+      });
+      let isWaitingResponse =
+        toolCallDetails.confirmed !== false &&
+        toolCallDetails.confirmed !== true;
+      if (isWaitingResponse) {
+        // check if user has enabled auto-confirmation for this type of tool
+
+        confirmToolRun({
+          messageId: message.id,
+          messages,
+          setMessages,
+          toolData,
+          postSessionMessage,
+          toolPaneSelection,
+          setToolPaneSelection,
+        });
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (message.unuseful) {
     return (
       <Card>
@@ -122,6 +146,7 @@ const renderMessageCard = (
     const isRejected = toolCallDetails.confirmed === false;
     const isWaitingResponse =
       toolCallDetails.confirmed !== false && toolCallDetails.confirmed !== true;
+
     let Ribbon: any = React.Fragment;
     let ribbonProps = {};
 
@@ -183,23 +208,15 @@ const renderMessageCard = (
                     type="primary"
                     icon={<CheckOutlined />}
                     onClick={() => {
-                      const newMessages = patchLastMessageToolInfo(messages, {
-                        confirmed: true,
+                      confirmToolRun({
+                        messageId: message.id,
+                        messages,
+                        setMessages,
+                        toolData,
+                        postSessionMessage,
+                        toolPaneSelection,
+                        setToolPaneSelection,
                       });
-                      setMessages(newMessages);
-
-                      if (toolData?.functionType === FunctionType.BACKEND) {
-                        postSessionMessage(newMessages).then((data: any) => {
-                          if (data.messages) {
-                            setMessages(data.messages);
-                          }
-                        });
-                      } else if (toolData?.functionType === FunctionType.UI) {
-                        setToolPaneSelection({
-                          ...toolPaneSelection,
-                          [message.id]: "2",
-                        });
-                      }
                     }}
                   >
                     Accept and run tool
@@ -283,107 +300,4 @@ const renderMessageCard = (
   );
 };
 
-const getMessageIcon = (role: string) => {
-  if (role === "assistant") {
-    return <RobotOutlined style={{ fontSize: "24px", color: "green" }} />;
-  }
-
-  if (role === "function") {
-    return <ToolOutlined style={{ fontSize: "24px", color: "green" }} />;
-  }
-
-  return <UserOutlined style={{ fontSize: "24px", color: "green" }} />;
-};
-
-const Messages = ({
-  messages,
-  setMessages,
-  postSessionMessage,
-  tools,
-}: {
-  messages: Message[];
-  setMessages: React.Dispatch<Message[]>;
-  postSessionMessage: (messages: Message[]) => Promise<any>;
-  tools: ToolData[];
-}) => {
-  const [toolPaneSelection, setToolPaneSelection] = useState<
-    Record<string, string>
-  >({});
-  if (!messages.length) {
-    return (
-      <Empty
-        image="https://user-images.githubusercontent.com/1476886/147765281-e871657c-37a8-495d-b08b-c5dccf6334c3.png"
-        imageStyle={{ height: "200px" }}
-        description={
-          <h3 style={{ color: "green" }}>
-            Welcome to XestGPT. Ask questions about your codebase and get
-            instant answers.
-          </h3>
-        }
-      ></Empty>
-    );
-  }
-
-  return (
-    <Timeline mode="left" style={{ paddingTop: "8px" }}>
-      {messages.map((m: any) => {
-        if (m.hiddenFromUser) {
-          return null;
-        }
-        return (
-          <Timeline.Item
-            dot={
-              <>
-                {" "}
-                <Dropdown menu={menuProps} placement="bottom">
-                  <Button
-                    icon={getMessageIcon(m.role)}
-                    style={{ border: "none" }}
-                  ></Button>
-                </Dropdown>
-              </>
-            }
-            color="green"
-            style={{ paddingTop: "12px" }}
-          >
-            {m.unuseful ? (
-              <Badge.Ribbon
-                text={
-                  <>
-                    <ExclamationCircleOutlined
-                      style={{ fontSize: "14px", color: "white" }}
-                    />{" "}
-                    irrelevant
-                  </>
-                }
-                color="orange"
-              >
-                {renderMessageCard(
-                  m,
-                  messages,
-                  setMessages,
-                  postSessionMessage,
-                  tools,
-                  toolPaneSelection,
-                  setToolPaneSelection
-                )}
-              </Badge.Ribbon>
-            ) : (
-              renderMessageCard(
-                m,
-                messages,
-                setMessages,
-                postSessionMessage,
-                tools,
-                toolPaneSelection,
-                setToolPaneSelection
-              )
-            )}
-          </Timeline.Item>
-        );
-      })}
-    </Timeline>
-  );
-};
-
-export default Messages;
+export default MessageCard;

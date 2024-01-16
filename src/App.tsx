@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { MessageOutlined } from "@ant-design/icons";
-import type { MenuProps, TabsProps } from "antd";
+import type { MenuProps } from "antd";
 import { Layout, Menu, theme, Tabs } from "antd";
 import TopBar from "./components/TopBar";
 import ToolSelector from "./components/ToolSelector/index";
 import SubmitButton from "./components/SubmitButton";
-import Messages from "./components/Messages";
+import MessageTimeline from "./components/MessageTimeline";
 import parseToolDataIntoTreeFormat from "./utils/parseToolDataIntoTreeFormat";
 import { Message, ToolData, ToolTreeData } from "./types";
 
@@ -152,7 +152,7 @@ const App: React.FC = () => {
             <Content
               style={{ padding: "0 24px", minHeight: 280, overflow: "scroll" }}
             >
-              <Messages
+              <MessageTimeline
                 messages={messages}
                 setMessages={setMessages}
                 postSessionMessage={postSessionMessagesPatched}
