@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -34,13 +34,13 @@ const confirmToolRun = ({
   toolPaneSelection,
   setToolPaneSelection,
 }: {
-    messageId: string,
-    messages: Message[],
-    setMessages: React.Dispatch<Message[]>;
-    postSessionMessage: any;
-    toolData?: ToolData;
-    toolPaneSelection: Record<string, string>;
-    setToolPaneSelection: React.Dispatch<Record<string, string>>;
+  messageId: string;
+  messages: Message[];
+  setMessages: React.Dispatch<Message[]>;
+  postSessionMessage: any;
+  toolData?: ToolData;
+  toolPaneSelection: Record<string, string>;
+  setToolPaneSelection: React.Dispatch<Record<string, string>>;
 }) => {
   const newMessages = patchLastMessageToolInfo(messages, {
     confirmed: true,
@@ -85,6 +85,7 @@ interface MessageCardProps {
   message: Message;
   messages: Message[];
   setMessages: React.Dispatch<Message[]>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   postSessionMessage: any;
   tools: ToolData[];
   toolPaneSelection: Record<string, string>;
@@ -100,6 +101,8 @@ const MessageCard: React.FC<MessageCardProps> = ({
   toolPaneSelection,
   setToolPaneSelection,
 }) => {
+  const confirmedMessages = useRef<Record<string, boolean>>({});
+
   useEffect(() => {
     if (message.role === MessageRole.FUNCTION && message.tool) {
       const toolCallDetails = message.tool;
@@ -107,12 +110,15 @@ const MessageCard: React.FC<MessageCardProps> = ({
       const toolData = tools.find((t) => {
         return t.name === toolCallDetails.name;
       });
-      let isWaitingResponse =
+      const isWaitingResponse =
         toolCallDetails.confirmed !== false &&
         toolCallDetails.confirmed !== true;
-      if (isWaitingResponse) {
-        // check if user has enabled auto-confirmation for this type of tool
-
+      if (isWaitingResponse && !confirmedMessages.current[message.id]) {
+        // todo: PRECIOUS check if user has enabled auto-confirmation for this type of tool
+        confirmedMessages.current = {
+          ...confirmedMessages.current,
+          [message.id]: true,
+        };
         confirmToolRun({
           messageId: message.id,
           messages,
@@ -124,7 +130,7 @@ const MessageCard: React.FC<MessageCardProps> = ({
         });
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (message.unuseful) {
@@ -147,6 +153,7 @@ const MessageCard: React.FC<MessageCardProps> = ({
     const isWaitingResponse =
       toolCallDetails.confirmed !== false && toolCallDetails.confirmed !== true;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let Ribbon: any = React.Fragment;
     let ribbonProps = {};
 
@@ -276,7 +283,9 @@ const MessageCard: React.FC<MessageCardProps> = ({
                     />
                   </ErrorBoundary>
                 ) : (
-                  <p>{toolCallDetails.output}</p>
+                  <SyntaxHighlighter language="javascript" style={oneDark}>
+                    {toolCallDetails.output?.replace(/\\n/g, "\n") || ""}
+                  </SyntaxHighlighter>
                 )}
               </TabPane>
             )}
